@@ -8,10 +8,12 @@ uses one of them: each native module brings its own dftracer.
 import functools
 
 API = [
-    "Activity", "CATEGORY", "DEFAULT_TRACE_IO", "Entity", "EntityType",
-    "HAS_HDF5", "HAS_MPI", "LAYER", "Relation", "Role", "Store", "activity",
-    "entity", "entity_type", "finalize", "initialize", "is_active", "relate",
-    "relation_name",
+    "Activity", "Artifact", "CATEGORY", "DEFAULT_TRACE_IO", "Entity",
+    "EntityType", "HAS_ARTIFACT_STORE", "HAS_HDF5", "HAS_MPI", "LAYER",
+    "Lifetime", "Relation", "Role", "Store", "activity",
+    "agent_configuration", "artifact_uri", "entity",
+    "entity_type", "finalize", "initialize", "is_active", "read_artifact",
+    "relate", "relation_name", "store_artifact", "store_artifact_file",
 ]
 
 
@@ -92,6 +94,12 @@ def make_api(native):
         def updated(self, e):
             return self.relate(Relation.UPDATED, e)
 
+        def span(self, start_us, end_us):
+            """What it really spanned, when that was not this object's
+            lifetime: microseconds since the epoch, in the event's args."""
+            self.begin()
+            self._native.span(int(start_us), int(end_us))
+
         def uses(self, type, key, store=Store.MEMORY, uri=""):
             return self.relate(Relation.USED, (type, key, store, uri))
 
@@ -123,24 +131,58 @@ def make_api(native):
 
         return wrap
 
+    def as_bytes(content):
+        if isinstance(content, str):
+            return content.encode("utf-8", "surrogateescape")
+        return content
+
+    def store_artifact(content):
+        """Keep ``content`` (str or bytes) next to the trace, once, a transient
+        artifact; give its ``uri`` to an entity."""
+        return native.store_artifact(as_bytes(content))
+
+    def artifact_uri(content):
+        """The URI ``content`` has as an artifact, storing nothing."""
+        return native.artifact_uri(as_bytes(content))
+
+    def store_artifact_file(path, lifetime=native.Lifetime.PERSISTENT):
+        """A file as an artifact: its content stored if transient, a link to
+        it if persistent."""
+        return native.store_artifact_file(str(path), lifetime)
+
+    def read_artifact(uri, log_file=""):
+        """The bytes at ``uri``, or None if they are not there or a linked
+        file has changed. ``log_file`` is the run's trace prefix. A URI may
+        carry the name of what it holds after an ``@``, as a file entity's
+        does; only what comes before it is the key."""
+        return native.read_artifact(uri.split("@", 1)[0], str(log_file))
+
     return {
         "Activity": Activity,
+        "Artifact": native.Artifact,
         "CATEGORY": native.CATEGORY,
         "DEFAULT_TRACE_IO": native.DEFAULT_TRACE_IO,
         "Entity": native.Entity,
         "EntityType": native.EntityType,
+        "HAS_ARTIFACT_STORE": native.HAS_ARTIFACT_STORE,
         "HAS_HDF5": native.HAS_HDF5,
         "HAS_MPI": native.HAS_MPI,
         "LAYER": native.LAYER,
+        "Lifetime": native.Lifetime,
         "Relation": Relation,
         "Role": native.Role,
         "Store": Store,
         "activity": activity,
+        "agent_configuration": native.agent_configuration,
+        "artifact_uri": artifact_uri,
         "entity": entity,
         "entity_type": entity_type,
         "finalize": native.finalize,
         "initialize": initialize,
         "is_active": native.is_active,
+        "read_artifact": read_artifact,
         "relate": relate,
         "relation_name": native.relation_name,
+        "store_artifact": store_artifact,
+        "store_artifact_file": store_artifact_file,
     }

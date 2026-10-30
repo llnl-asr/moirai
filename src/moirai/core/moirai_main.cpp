@@ -29,6 +29,7 @@ bool MoiraiCore::initialize(const std::string& log_file) {
   dftracer_register_event_type(&activity);
   initialize_main(nullptr, nullptr, nullptr);
   is_active_ = conf_->enable;
+  artifacts_ = std::make_shared<ArtifactStore>(conf_->log_file, is_active_);
   MOIRAI_LOG_INFO("moirai initialized: enable %d trace_io %d log_file %s",
                   conf_->enable, conf_->trace_io, conf_->log_file.c_str());
   return is_active_;
@@ -40,6 +41,7 @@ void MoiraiCore::finalize() {
   if (!is_initialized_ || is_finalized_) return;
   is_finalized_ = true;
   is_active_ = false;
+  artifacts_.reset();
   ::finalize();
   MOIRAI_LOG_INFO("moirai finalized");
 }
@@ -52,5 +54,10 @@ bool MoiraiCore::is_active() const {
 std::shared_ptr<EntityRegistry> MoiraiCore::registry() const {
   std::lock_guard<std::mutex> lock(mtx_);
   return is_active_ ? registry_ : nullptr;
+}
+
+std::shared_ptr<ArtifactStore> MoiraiCore::artifacts() const {
+  std::lock_guard<std::mutex> lock(mtx_);
+  return artifacts_;
 }
 }  // namespace moirai

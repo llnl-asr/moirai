@@ -79,6 +79,22 @@ typedef enum {
   MOIRAI_ROLE_REFERENCE = 5     /* versioned reference data */
 } MoiraiRole;
 
+/* An artifact is content too large for a trace, kept next to it. An entity's
+ * uri holds its address, MOIRAI_ARTIFACT_SCHEME + 16 hex digits, as every id
+ * in a trace, so a trace holds only the key. Equal content has the same key;
+ * the key is of a sample of large content, so it is not a proof of equality
+ * across runs. */
+#define MOIRAI_ARTIFACT_SCHEME "artifact://"
+/* Scheme + 16 hex digits + NUL. */
+#define MOIRAI_ARTIFACT_URI_LEN 28
+
+/* How long an artifact's content outlives the run, which decides what is kept
+ * of it. */
+typedef enum {
+  MOIRAI_ARTIFACT_TRANSIENT = 0, /* it goes away: the content is stored */
+  MOIRAI_ARTIFACT_PERSISTENT = 1 /* it stays: only a link to it is stored */
+} MoiraiArtifactLifetime;
+
 /* Relations. Values < 16 relate an ACTIVITY to an entity (activity args);
  * values >= 16 relate two ENTITIES (ER records). */
 typedef enum {

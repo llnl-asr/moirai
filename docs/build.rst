@@ -121,3 +121,13 @@ logging compiled out, and a ``_dbg`` build with moirai's logging compiled in
 
 Headers are installed under ``include/moirai``; the Python package under
 ``lib/python<X.Y>/site-packages/moirai`` (``MOIRAI_PYTHON_INSTALL_DIR``).
+
+------------------------------------------
+Artifact store
+------------------------------------------
+
+Artifacts need dftracer-utils with RocksDB's headers. They are looked for next
+to dftracer and in the Python environment; otherwise give
+``-DMOIRAI_DFTRACER_UTILS_PREFIX=<prefix>`` and, if the headers are elsewhere,
+``-DMOIRAI_ROCKSDB_INCLUDE_DIR=<dir>``. Without them moirai builds with a
+warning, and artifacts are not stored (``-DMOIRAI_ARTIFACTS=OFF`` asks for that).

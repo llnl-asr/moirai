@@ -15,8 +15,23 @@ with the same ``MOIRAI_LOG_FILE``:
    moirai-service stop
 
 ``moirai-service stop`` drains the ring and closes the node trace,
-``traces/run1_<host>.pfw.gz``; the service's log and pid file are next to
-it.
+``traces/run1_<host>.pfw.gz``; the service's log and pid file are next to it.
+
+------------------------------------------
+Reading a trace while it runs
+------------------------------------------
+
+The node trace can be read while the service runs. The service seals what it
+receives into whole gzip members of ``<prefix>_<host>.pfw.gz``, so what a process
+wrote is there soon after, about a second here, and no other file is made.
+Producers publish on their own timer, ``MOIRAI_PC_FLUSH_MS``, and at
+``moirai_finalize``.
+
+The file is a sequence of independent gzip members, and each is written at a
+reserved offset, so the last may be unfinished and one can be missing for a
+moment. A reader decodes member by member, keeps its position at the end of the
+last whole one and tries again from there: a plain ``gzip`` reader fails at an
+unfinished member.
 
 ------------------------------------------
 Several jobs on one node

@@ -23,6 +23,7 @@ include(${PROJECT_SOURCE_DIR}/cmake/moirai-dftracer.cmake)
 if(MOIRAI_SUPERBUILD)
     return()
 endif()
+include(${PROJECT_SOURCE_DIR}/cmake/moirai-artifacts.cmake)
 
 if(MOIRAI_TRACE_IO)
     set(MOIRAI_DEFAULT_TRACE_IO 1)
@@ -67,6 +68,7 @@ set(MOIRAI_CORE_SRC
     src/moirai/core/common/logging.cpp
     src/moirai/core/utils/configuration_manager.cpp
     src/moirai/core/provenance/entity_registry.cpp
+    src/moirai/core/artifact/artifact_store.cpp
     src/moirai/core/moirai_main.cpp
     src/moirai/core/moirai.cpp)
 set(MOIRAI_SERVICE_SRC
@@ -102,6 +104,12 @@ foreach(_dbg "" "_dbg")
             $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
         PRIVATE ${PROJECT_SOURCE_DIR}/src)
     target_link_libraries(moirai${_dbg} PUBLIC dftracer_core${_dbg})
+    if(MOIRAI_HAS_ARTIFACT_STORE)
+        target_include_directories(moirai${_dbg} SYSTEM PRIVATE
+            ${MOIRAI_DFTRACER_UTILS_INCLUDE_DIR} ${MOIRAI_ROCKSDB_INCLUDE_DIR})
+        target_link_libraries(moirai${_dbg} PRIVATE ${MOIRAI_DFTRACER_UTILS_LIBRARY})
+        target_compile_definitions(moirai${_dbg} PRIVATE ROCKSDB_USE_RTTI)
+    endif()
     target_compile_options(moirai${_dbg} PRIVATE ${MOIRAI_WARNINGS})
     set_target_properties(moirai${_dbg} PROPERTIES
         VERSION ${PROJECT_VERSION} SOVERSION ${PROJECT_VERSION_MAJOR})

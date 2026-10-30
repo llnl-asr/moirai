@@ -30,7 +30,8 @@ Layout
        moirai.cpp               the public actors and the C connector
      service/                   MoiraiService and moirai-service's main
      python/moirai_py.cpp       the Python binding (_moirai, _moirai_dbg)
-   python/moirai/               the Python API (moirai, moirai.dbg, moirai.service)
+   python/moirai/               the Python API (moirai, moirai.dbg, moirai.service,
+                                moirai.agent)
    test/                        see testing
    script/formatting/           autoformat.sh, check-formatting.sh
    scripts/wheel/               build_wheels.sh, repair_wheel.sh, test_wheel.py
@@ -192,7 +193,7 @@ moirai's wheel runs on the ``dftracer`` wheel and does not carry dftracer:
 
 ``MOIRAI_DFTRACER_SPEC`` is the dftracer to build against. No dftracer
 release has the event-type API yet, so the default is dftracer's
-``feature/generic-event-api`` branch from git, which builds as
+``develop`` branch from git, which builds as
 ``2.2.0.post17.dev0``; ``pyproject.toml`` requires
 ``dftracer>=2.2.0.post17.dev0`` to match. Once a release has the API, set
-both to it, and ``ci.yml`` and ``valgrind-ci.yml`` back to ``develop``.
+both to it.

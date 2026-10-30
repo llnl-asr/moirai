@@ -28,7 +28,7 @@ on:
       dftracer_spec:
         description: 'dftracer wheel to build against (pip requirement)'
         type: string
-        default: 'dftracer @ git+https://github.com/llnl-asr/dftracer@feature/generic-event-api'
+        default: 'dftracer @ git+https://github.com/llnl-asr/dftracer@develop'
   workflow_call:
     inputs:
       python_versions:
@@ -39,12 +39,12 @@ on:
         default: '2.28'
       dftracer_spec:
         type: string
-        default: 'dftracer @ git+https://github.com/llnl-asr/dftracer@feature/generic-event-api'
+        default: 'dftracer @ git+https://github.com/llnl-asr/dftracer@develop'
 
 permissions:
   contents: read
 
-# Built against dftracer's feature/generic-event-api from git until a dftracer
+# Built against dftracer's develop from git until a dftracer
 # release has the event-type API; then set dftracer_spec to that release.
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -89,7 +89,7 @@ jobs:
       - name: Build and test wheel
         env:
           CIBW_CONTAINER_ENGINE: docker
-          MOIRAI_DFTRACER_SPEC: ${{ inputs.dftracer_spec || 'dftracer @ git+https://github.com/llnl-asr/dftracer@feature/generic-event-api' }}
+          MOIRAI_DFTRACER_SPEC: ${{ inputs.dftracer_spec || 'dftracer @ git+https://github.com/llnl-asr/dftracer@develop' }}
         run: |
           scripts/wheel/build_wheels.sh \
             --python "${{ matrix.python }}" \

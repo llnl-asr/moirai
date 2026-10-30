@@ -9,6 +9,8 @@
 /* dftracer was built with HDF5 / MPI tracing. */
 #define MOIRAI_HAS_HDF5 @MOIRAI_HAS_HDF5@
 #define MOIRAI_HAS_MPI @MOIRAI_HAS_MPI@
+/* Artifacts are stored (RocksDB, through dftracer-utils). */
+#define MOIRAI_HAS_ARTIFACT_STORE @MOIRAI_HAS_ARTIFACT_STORE@
 /* Further dftracer features moirai was built with (MOIRAI_DFTRACER_FEATURES),
  * e.g. "CUDA;PAPI"; empty for none. */
 #define MOIRAI_DFTRACER_FEATURES "@MOIRAI_DFTRACER_FEATURES@"

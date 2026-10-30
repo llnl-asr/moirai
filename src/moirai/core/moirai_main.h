@@ -1,5 +1,6 @@
 #ifndef MOIRAI_CORE_MOIRAI_MAIN_H
 #define MOIRAI_CORE_MOIRAI_MAIN_H
+#include <moirai/core/artifact/artifact_store.h>
 #include <moirai/core/common/singleton.h>
 #include <moirai/core/provenance/entity_registry.h>
 #include <moirai/core/utils/configuration_manager.h>
@@ -28,11 +29,14 @@ class MoiraiCore {
   std::shared_ptr<ConfigurationManager> configuration() const { return conf_; }
   // The registry, or nullptr when not tracing.
   std::shared_ptr<EntityRegistry> registry() const;
+  // The artifact store, from initialize to finalize, else nullptr.
+  std::shared_ptr<ArtifactStore> artifacts() const;
 
  private:
   mutable std::mutex mtx_;
   std::shared_ptr<ConfigurationManager> conf_;
   std::shared_ptr<EntityRegistry> registry_;
+  std::shared_ptr<ArtifactStore> artifacts_;
   bool is_initialized_;
   bool is_finalized_;
   bool is_active_;
