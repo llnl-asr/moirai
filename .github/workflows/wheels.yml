@@ -1,0 +1,103 @@
+name: Wheels
+
+# manylinux wheels, built and tested by scripts/wheel/build_wheels.sh (as
+# dftracer's): built against the dftracer wheel and requiring it.
+on:
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'CMakeLists.txt'
+      - 'pyproject.toml'
+      - 'VERSION'
+      - 'cmake/**'
+      - 'src/**'
+      - 'include/**'
+      - 'python/**'
+      - 'scripts/wheel/**'
+      - '.github/workflows/wheels.yml'
+  workflow_dispatch:
+    inputs:
+      python_versions:
+        description: 'Python versions to build (comma separated)'
+        type: string
+        default: '3.9,3.10,3.11,3.12,3.13,3.14'
+      glibc:
+        description: 'manylinux glibc baseline'
+        type: string
+        default: '2.28'
+      dftracer_spec:
+        description: 'dftracer wheel to build against (pip requirement)'
+        type: string
+        default: 'dftracer @ git+https://github.com/llnl-asr/dftracer@feature/generic-event-api'
+  workflow_call:
+    inputs:
+      python_versions:
+        type: string
+        default: '3.9,3.10,3.11,3.12,3.13,3.14'
+      glibc:
+        type: string
+        default: '2.28'
+      dftracer_spec:
+        type: string
+        default: 'dftracer @ git+https://github.com/llnl-asr/dftracer@feature/generic-event-api'
+
+permissions:
+  contents: read
+
+# Built against dftracer's feature/generic-event-api from git until a dftracer
+# release has the event-type API; then set dftracer_spec to that release.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  plan:
+    name: Plan
+    runs-on: ubuntu-24.04
+    outputs:
+      pythons: ${{ steps.matrix.outputs.pythons }}
+      glibc: ${{ steps.matrix.outputs.glibc }}
+    steps:
+      - name: Resolve the interpreter matrix
+        id: matrix
+        env:
+          VERSIONS: ${{ inputs.python_versions || '3.9,3.10,3.11,3.12,3.13,3.14' }}
+          GLIBC: ${{ inputs.glibc || '2.28' }}
+        run: |
+          python3 -c "
+          import json, os
+          versions = [v.strip() for v in os.environ['VERSIONS'].split(',') if v.strip()]
+          print('pythons=' + json.dumps(versions))
+          " >> "$GITHUB_OUTPUT"
+          echo "glibc=$GLIBC" >> "$GITHUB_OUTPUT"
+
+  build:
+    name: cp${{ matrix.python }} (glibc ${{ needs.plan.outputs.glibc }})
+    needs: plan
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ${{ fromJSON(needs.plan.outputs.pythons) }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Build and test wheel
+        env:
+          CIBW_CONTAINER_ENGINE: docker
+          MOIRAI_DFTRACER_SPEC: ${{ inputs.dftracer_spec || 'dftracer @ git+https://github.com/llnl-asr/dftracer@feature/generic-event-api' }}
+        run: |
+          scripts/wheel/build_wheels.sh \
+            --python "${{ matrix.python }}" \
+            --glibc "${{ needs.plan.outputs.glibc }}" \
+            --output wheelhouse
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wheel-cp${{ matrix.python }}
+          path: wheelhouse/*.whl
+          if-no-files-found: error

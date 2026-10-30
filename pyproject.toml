@@ -1,0 +1,56 @@
+[build-system]
+# The dftracer wheel is a build requirement too: moirai's wheel is built
+# against it (MOIRAI_DFTRACER=PACKAGE) and runs on it. It needs dftracer's
+# event-type API, which no dftracer release has yet: for now the pin is the
+# build of dftracer's feature/generic-event-api branch (2.2.0.post17.dev0,
+# what CI installs from git). Replace it with the first release that has it.
+requires = ["scikit-build-core>=0.10", "pybind11>=2.12", "dftracer>=2.2.0.post17.dev0"]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "moirai"
+dynamic = ["version"]
+description = "Data provenance for HPC applications, traced by dftracer."
+readme = "README.md"
+requires-python = ">=3.9"
+license = "MIT"
+authors = [
+  { name = "Hariharan Devarajan (Hari)", email = "hariharandev1@llnl.gov" }
+]
+keywords = ["provenance", "lineage", "HPC", "dftracer", "tracing"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Science/Research",
+  "Operating System :: POSIX :: Linux",
+  "Programming Language :: C",
+  "Programming Language :: C++",
+  "Programming Language :: Python :: 3",
+]
+# moirai runs dftracer underneath it: one with the event-type API (see the
+# build requirements above).
+dependencies = ["dftracer>=2.2.0.post17.dev0"]
+
+[project.urls]
+Homepage = "https://github.com/llnl-asr/moirai"
+Documentation = "https://moirai.readthedocs.io"
+
+[project.scripts]
+moirai-service = "moirai.service:main"
+
+[tool.scikit-build]
+minimum-version = "0.10"
+cmake.version = ">=3.24"
+build-dir = "build/{wheel_tag}"
+wheel.packages = []
+sdist.exclude = ["build", "install", "docs/_build", "wheelhouse"]
+
+[tool.scikit-build.metadata.version]
+provider = "scikit_build_core.metadata.regex"
+input = "VERSION"
+regex = '(?P<value>[0-9][0-9.]*)'
+
+[tool.scikit-build.cmake.define]
+MOIRAI_WHEEL = "ON"
+MOIRAI_DFTRACER = "PACKAGE"
+MOIRAI_ENABLE_TESTS = "OFF"
+MOIRAI_BUILD_PYTHON = "ON"

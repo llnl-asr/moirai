@@ -1,0 +1,30 @@
+name: Check code formatting
+
+# Pull requests only: a merge into develop carries the content the pull request
+# already checked.
+on:
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  cpp-format-check:
+    runs-on: ubuntu-24.04
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install clang-format
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y --no-install-recommends \
+            build-essential \
+            clang-format-19
+
+    - name: Test formatting
+      run: |
+        ./script/formatting/check-formatting.sh /usr/bin/clang-format-19
