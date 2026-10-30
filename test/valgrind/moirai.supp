@@ -1,0 +1,3 @@
+# Known reports from outside moirai, under valgrind's memcheck
+# (test/run_case.sh, MOIRAI_TEST_VALGRIND). Each entry says why it is not
+# moirai's. Keep this file small: a new entry needs a reason.

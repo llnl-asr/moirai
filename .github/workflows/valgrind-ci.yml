@@ -1,0 +1,92 @@
+name: Valgrind Gates
+
+# Every test application -- C, C++ and Python, release and _dbg -- runs the
+# provenance scenario under valgrind's memcheck (ctest label "valgrind",
+# test/run_case.sh): C/C++ fail on any error or definite/possible leak,
+# Python on any context with a moirai or dftracer frame.
+'on':
+  push:
+    branches: [develop]
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
+      - '.readthedocs.yaml'
+      - 'LICENSE'
+  pull_request:
+    branches: [main, develop]
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
+      - '.readthedocs.yaml'
+      - 'LICENSE'
+  workflow_dispatch:
+    inputs:
+      dftracer_ref:
+        description: 'dftracer git ref to build moirai on'
+        type: string
+        default: 'feature/generic-event-api'
+
+# dftracer's event-type API is on its feature/generic-event-api branch
+# until that is merged: build on it, then switch the default to develop.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  valgrind-gates:
+    name: Valgrind Gates (Python-3.12 GCC-13)
+    runs-on: ubuntu-24.04
+    env:
+      CC: gcc-13
+      CXX: g++-13
+      DFTRACER_REF: ${{ inputs.dftracer_ref || 'feature/generic-event-api' }}
+      CMAKE_BUILD_PARALLEL_LEVEL: 4
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential cmake git gcc-13 g++-13 libyaml-cpp-dev \
+            ninja-build pkg-config python3-dev valgrind
+          valgrind --version
+
+      - name: Install Python build dependencies
+        run: |
+          python -m venv venv
+          venv/bin/pip install --upgrade pip
+          venv/bin/pip install pybind11
+
+      - name: Configure and build
+        run: |
+          cmake -S . -B build \
+            -DMOIRAI_DFTRACER=BUILD \
+            -DMOIRAI_DFTRACER_GIT_TAG="$DFTRACER_REF" \
+            -DMOIRAI_ENABLE_TESTS=ON \
+            -DMOIRAI_TEST_VALGRIND=ON \
+            -DPython_EXECUTABLE=$PWD/venv/bin/python \
+            -DCMAKE_BUILD_TYPE=RelWithDebInfo
+          cmake --build build
+
+      - name: Valgrind gate
+        run: |
+          ctest --test-dir build/moirai -L valgrind --output-on-failure -j 2
+          # Every test application ran under valgrind: one run per language
+          # (c, cpp, py) and build (release, _dbg), each with its check.
+          tests=$(ctest --test-dir build/moirai -L valgrind -N)
+          runs=$(echo "$tests" | grep -cE "Test +#[0-9]+: moirai_.*_valgrind$" || true)
+          checks=$(echo "$tests" | grep -cE "Test +#[0-9]+: check_moirai_.*_valgrind$" || true)
+          echo "valgrind runs: $runs, checks: $checks"
+          test "$runs" -eq 6 && test "$checks" -eq 6
+
+      - name: Upload valgrind logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: moirai-valgrind-logs
+          path: build/moirai/test/moirai_*_valgrind/valgrind.log
