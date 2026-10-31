@@ -16,8 +16,9 @@
  *   MOIRAI_TRACE_IO          1/0: trace POSIX/STDIO I/O (default: build)
  *   MOIRAI_DFTRACER_SERVICE  dftracer_service binary for moirai-service
  * Every other MOIRAI_<X> is dftracer's DFTRACER_<X>, e.g. MOIRAI_DATA_DIR
- * (directories whose I/O is traced; default all), MOIRAI_SERVICE_SHM (the
- * service's ring), MOIRAI_CONFIGURATION (a dftracer YAML file),
+ * (':'-separated directories whose I/O is traced, each also by its real path
+ * when that differs; default all), MOIRAI_SERVICE_SHM (the service's ring),
+ * MOIRAI_CONFIGURATION (a dftracer YAML file),
  * MOIRAI_LOG_LEVEL (also moirai's own, in the _dbg build).
  *
  * This is the C connector of moirai.hpp: every call goes to the same C++
@@ -67,6 +68,18 @@ MoiraiId moirai_activity_relate_entity(struct MoiraiActivityData* data,
                                        MoiraiStore store, const char* uri);
 void moirai_activity_end(struct MoiraiActivityData* data);
 void moirai_activity_cleanup(struct MoiraiActivityData** data);
+
+/* Content kept next to the trace, in <log file>.artifacts (moirai::Artifact);
+ * give the uri to moirai_entity. uri has MOIRAI_ARTIFACT_URI_LEN bytes; each
+ * returns 1, or 0 if there is no such content. */
+int moirai_artifact(const void* data, size_t size, char* uri);
+/* A file: its content stored if transient, a link to it if persistent. */
+int moirai_artifact_file(const char* path, MoiraiArtifactLifetime lifetime,
+                         char* uri);
+/* The content at uri, malloc'ed into *data; log_file is the run's trace prefix
+ * (NULL: this one). */
+int moirai_artifact_read(const char* uri, void** data, size_t* size,
+                         const char* log_file);
 
 /* Activities scoped to a C block, as dftracer's regions:
  * MOIRAI_C_ACTIVITY_START(name) ... MOIRAI_C_ACTIVITY_END(name), or ended when

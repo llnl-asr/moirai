@@ -1,3 +1,4 @@
+#include <moirai/core/common/constants.h>
 #include <moirai/core/common/logging.h>
 
 #ifdef MOIRAI_DEBUG
@@ -6,7 +7,7 @@
 #include <cstdlib>
 
 void moirai_logger_init() {
-  const char* level = std::getenv("MOIRAI_LOG_LEVEL");
+  const char* level = std::getenv(MOIRAI_ENV_LOG_LEVEL);
   int value = CPP_LOGGER_C_ERROR;
   if (level != nullptr) {
     if (strcasecmp(level, "TRACE") == 0)

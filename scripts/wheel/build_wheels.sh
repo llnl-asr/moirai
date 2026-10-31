@@ -22,7 +22,7 @@
 # Environment:
 #   MOIRAI_DFTRACER_SPEC   the dftracer to build and test against, as a pip
 #                          requirement (default: dftracer's
-#                          feature/generic-event-api from git, until a release
+#                          develop from git, until a release
 #                          has the event-type API)
 #   CIBW_VERSION           cibuildwheel version (default 3.2.1)
 #   CIBW_CONTAINER_ENGINE  docker (default) or podman; rootless podman gets its
@@ -44,7 +44,7 @@ OUTPUT="$PROJECT_DIR/wheelhouse"
 RUN_TESTS=1
 LIST_ONLY=0
 CIBW_VERSION="${CIBW_VERSION:-3.2.1}"
-DFTRACER_SPEC="${MOIRAI_DFTRACER_SPEC:-dftracer @ git+https://github.com/llnl-asr/dftracer@feature/generic-event-api}"
+DFTRACER_SPEC="${MOIRAI_DFTRACER_SPEC:-dftracer @ git+https://github.com/llnl-asr/dftracer@develop}"
 VERSION="$(head -n1 "$PROJECT_DIR/VERSION")"
 
 die() {

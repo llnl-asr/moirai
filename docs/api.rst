@@ -146,3 +146,67 @@ Entities can be given as ``Entity`` objects, ids, or ``(type, key)`` /
 ``moirai.Entity``, ``moirai.EntityType`` and the ``Store``, ``Role`` and
 ``Relation`` enums are the C++ actors themselves. A process uses either
 ``moirai`` or ``moirai.dbg``, not both: each brings its own dftracer.
+
+.. _artifacts:
+
+------------------------------------------
+Artifacts
+------------------------------------------
+
+An artifact is content too large for a trace, kept next to it, in a RocksDB of
+dftracer-utils: a store in C++,
+with C and Python adapters. An entity holds its key as its URI, so the trace
+holds only ``artifact://<16 hex digits>``.
+
+.. code-block:: python
+
+   out = moirai.store_artifact(stdout_text)        # transient: content stored
+   moirai.entity("tool.output", "call-1", moirai.Store.DATABASE, out.uri)
+
+   data = moirai.store_artifact_file("/p/data/in.h5")  # persistent: a link
+   tmp = moirai.store_artifact_file("/tmp/x", moirai.Lifetime.TRANSIENT)
+
+   moirai.read_artifact(out.uri)                   # bytes, or None
+   moirai.read_artifact(out.uri, "traces/run1")    # after the run
+
+.. list-table::
+   :header-rows: 1
+
+   * - C++
+     - C
+     - Python
+   * - ``store_artifact(content)``
+     - ``moirai_artifact(data, size, uri)``
+     - ``store_artifact(content)``
+   * - ``store_artifact_file(path, lifetime)``
+     - ``moirai_artifact_file(path, lifetime, uri)``
+     - ``store_artifact_file(path, lifetime)``
+   * - ``read_artifact(uri, &content, log_file)``
+     - ``moirai_artifact_read(uri, &data, &size, log_file)``
+     - ``read_artifact(uri, log_file)``
+   * - ``artifact_uri(content)``
+     - 
+     - ``artifact_uri(content)``
+
+Lifetime
+   ``TRANSIENT`` content goes away, so it is stored. ``PERSISTENT`` content
+   stays where it is, so only a link is stored: path, size and mtime. A read
+   through a link returns nothing if the file is gone or has changed.
+
+Keys
+   FNV-1a, as moirai's ids, of the size and the content; past 64 KiB, of 64
+   blocks of 1 KiB spread over it, so a key costs about the same at any size.
+   Content is stored once. Because a key is of a sample, two large contents can
+   share one: a process that finds a key it stored compares them, and other
+   content takes the next key. Between two processes that is found out only at
+   the second one's batch, which keeps its content under ``<key>-<pid>``, while
+   a read of the key gets the first. A key is not a proof of equality between
+   runs. A persistent file past 64 KiB is also held to its
+   mtime, as an edit between samples would not change its key.
+
+The store is one database per node, ``<MOIRAI_LOG_FILE>.artifacts/<host>``, for
+all its producers. RocksDB has one open writer at a time, so a put waits in
+memory, and a batch takes the database, writes and closes it, waiting its turn:
+content is durable from that batch on, at 8 MiB and at ``finalize``. Tracing off
+(``MOIRAI_ENABLE=0``), or built without dftracer-utils, artifacts get their key
+and are not stored.

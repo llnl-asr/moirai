@@ -94,3 +94,91 @@ foreach(_dbg "" "_dbg")
         endif()
     endforeach()
 endforeach()
+
+# The artifact store through its C adapter (the C++ store is under both).
+if(MOIRAI_HAS_ARTIFACT_STORE)
+    add_executable(test_artifacts_c c/test_artifacts.c)
+    target_link_libraries(test_artifacts_c PRIVATE moirai)
+    target_compile_options(test_artifacts_c PRIVATE ${MOIRAI_WARNINGS})
+    add_test(NAME moirai_artifacts_c
+             COMMAND bash ${CMAKE_CURRENT_SOURCE_DIR}/run_case.sh spill
+                     $<TARGET_FILE:moirai-service>
+                     ${CMAKE_CURRENT_BINARY_DIR}/moirai_artifacts_c
+                     $<TARGET_FILE:test_artifacts_c>)
+endif()
+
+# The artifact store through its Python adapter, and the agent interface on it.
+if(MOIRAI_BUILD_PYTHON)
+    # moirai.agent without a service or a store.
+    foreach(_t shell manifest record redact install artifact_client)
+        add_test(NAME moirai_agent_${_t}
+                 COMMAND ${Python_EXECUTABLE}
+                         ${CMAKE_CURRENT_SOURCE_DIR}/py/test_${_t}.py)
+        set_tests_properties(moirai_agent_${_t} PROPERTIES
+            ENVIRONMENT "PYTHONPATH=${MOIRAI_PYTHON_DIR}" TIMEOUT 120)
+    endforeach()
+    # MOIRAI_DATA_DIR with real paths.
+    add_test(NAME moirai_data_dir
+             COMMAND bash ${CMAKE_CURRENT_SOURCE_DIR}/run_case.sh spill
+                     $<TARGET_FILE:moirai-service>
+                     ${CMAKE_CURRENT_BINARY_DIR}/moirai_data_dir
+                     ${Python_EXECUTABLE}
+                     ${CMAKE_CURRENT_SOURCE_DIR}/py/test_datadir_native.py)
+    set_tests_properties(moirai_data_dir PROPERTIES
+        ENVIRONMENT "PYTHONPATH=${MOIRAI_PYTHON_DIR};MOIRAI_TRACE_IO=0"
+        TIMEOUT 120)
+endif()
+
+if(MOIRAI_BUILD_PYTHON AND MOIRAI_HAS_ARTIFACT_STORE)
+    add_test(NAME moirai_agent
+             COMMAND bash ${CMAKE_CURRENT_SOURCE_DIR}/run_case.sh spill
+                     $<TARGET_FILE:moirai-service>
+                     ${CMAKE_CURRENT_BINARY_DIR}/moirai_agent
+                     ${Python_EXECUTABLE}
+                     ${CMAKE_CURRENT_SOURCE_DIR}/py/test_agent.py)
+    set_tests_properties(moirai_agent PROPERTIES
+        ENVIRONMENT "PYTHONPATH=${MOIRAI_PYTHON_DIR};MOIRAI_TRACE_IO=0"
+        TIMEOUT 120)
+    add_test(NAME moirai_artifacts
+             COMMAND bash ${CMAKE_CURRENT_SOURCE_DIR}/run_case.sh spill
+                     $<TARGET_FILE:moirai-service>
+                     ${CMAKE_CURRENT_BINARY_DIR}/moirai_artifacts
+                     ${Python_EXECUTABLE}
+                     ${CMAKE_CURRENT_SOURCE_DIR}/py/test_artifacts.py)
+    set_tests_properties(moirai_artifacts PROPERTIES
+        ENVIRONMENT "PYTHONPATH=${MOIRAI_PYTHON_DIR};MOIRAI_TRACE_IO=1"
+        TIMEOUT 120)
+    # A node trace is readable while the service runs.
+    add_test(NAME moirai_live_trace
+             COMMAND bash ${CMAKE_CURRENT_SOURCE_DIR}/run_case.sh service
+                     $<TARGET_FILE:moirai-service>
+                     ${CMAKE_CURRENT_BINARY_DIR}/moirai_live_trace
+                     ${Python_EXECUTABLE}
+                     ${CMAKE_CURRENT_SOURCE_DIR}/py/test_live_trace.py)
+    set_tests_properties(moirai_live_trace PROPERTIES
+        ENVIRONMENT "PYTHONPATH=${MOIRAI_PYTHON_DIR};MOIRAI_TRACE_IO=0"
+        TIMEOUT 120)
+    # An agent's commands run under I/O tracing, attributed to their tool call.
+    # Skipped (77) when the dftracer preload library cannot be found.
+    add_test(NAME moirai_agent_trace_io
+             COMMAND bash ${CMAKE_CURRENT_SOURCE_DIR}/run_case.sh service
+                     $<TARGET_FILE:moirai-service>
+                     ${CMAKE_CURRENT_BINARY_DIR}/moirai_agent_trace_io
+                     ${Python_EXECUTABLE}
+                     ${CMAKE_CURRENT_SOURCE_DIR}/py/test_agent_trace_io.py)
+    set_tests_properties(moirai_agent_trace_io PROPERTIES
+        ENVIRONMENT "PYTHONPATH=${MOIRAI_PYTHON_DIR};MOIRAI_TRACE_IO=0"
+        SKIP_RETURN_CODE 77
+        TIMEOUT 120)
+
+    # The manifest, the settings and read_text against the real hook and store.
+    add_test(NAME moirai_agent_manifest_native
+             COMMAND bash ${CMAKE_CURRENT_SOURCE_DIR}/run_case.sh spill
+                     $<TARGET_FILE:moirai-service>
+                     ${CMAKE_CURRENT_BINARY_DIR}/moirai_agent_manifest
+                     ${Python_EXECUTABLE}
+                     ${CMAKE_CURRENT_SOURCE_DIR}/py/test_agent_manifest.py)
+    set_tests_properties(moirai_agent_manifest_native PROPERTIES
+        ENVIRONMENT "PYTHONPATH=${MOIRAI_PYTHON_DIR};MOIRAI_TRACE_IO=0"
+        TIMEOUT 120)
+endif()

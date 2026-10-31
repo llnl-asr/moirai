@@ -18,6 +18,8 @@ traces next to the application's I/O.
    overview
    build
    api
+   integration
+   agents
    configuration
    running
    trace_format

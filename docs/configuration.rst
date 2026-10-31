@@ -30,6 +30,9 @@ moirai's settings
    * - ``MOIRAI_DFTRACER_SERVICE``
      - the build's
      - The ``dftracer_service`` binary ``moirai-service`` runs.
+   * - ``MOIRAI_AGENT_*``
+     - 
+     - ``moirai.agent``'s settings, see :doc:`agents`. Not passed to dftracer.
    * - ``MOIRAI_LOG_LEVEL``
      - ``ERROR``
      - ``ERROR``, ``WARN``, ``INFO``, ``DEBUG``, ``TRACE``: moirai's own
@@ -47,8 +50,9 @@ Every other ``MOIRAI_<X>`` is dftracer's ``DFTRACER_<X>``, for example:
    * - Variable
      - dftracer setting
    * - ``MOIRAI_DATA_DIR``
-     - ``DFTRACER_DATA_DIR``: directories whose I/O is traced (moirai's
-       default: ``all``)
+     - ``DFTRACER_DATA_DIR``: ``:``-separated directories whose I/O is
+       traced, each also by its real path when that differs (moirai's default:
+       ``all``)
    * - ``MOIRAI_SERVICE_SHM``
      - ``DFTRACER_SERVICE_SHM``: the service's ring, to run several
        services on one node

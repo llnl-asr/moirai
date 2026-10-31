@@ -3,6 +3,9 @@
 #include <moirai/core/common/logging.h>
 #include <moirai/core/moirai_main.h>
 
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 #include <moirai/moirai.hpp>
 
 namespace moirai {
@@ -11,6 +14,13 @@ namespace {
 std::shared_ptr<EntityRegistry> active_registry() {
   auto core = MOIRAI_MAIN_SINGLETON();
   return core != nullptr ? core->registry() : nullptr;
+}
+
+// The process's store; before initialize, one that only computes addresses.
+std::shared_ptr<ArtifactStore> active_artifacts() {
+  auto core = MOIRAI_MAIN_SINGLETON();
+  auto store = core != nullptr ? core->artifacts() : nullptr;
+  return store ? store : std::make_shared<ArtifactStore>("", false);
 }
 }  // namespace
 
@@ -91,6 +101,12 @@ void Activity::relate(Relation relation, const Entity& entity) {
                    entity.id());
 }
 
+void Activity::span(uint64_t start_us, uint64_t end_us) {
+  MOIRAI_LOG_TRACE();
+  event_.update("start_us", start_us);
+  event_.update("end_us", end_us);
+}
+
 Entity Activity::relate(Relation relation, const std::string& type,
                         const std::string& key, Store store,
                         const std::string& uri) {
@@ -99,6 +115,35 @@ Entity Activity::relate(Relation relation, const std::string& type,
   relate(relation, entity);
   return entity;
 }
+
+AgentConfiguration agent_configuration() {
+  auto conf = Singleton<ConfigurationManager>::get_instance();
+  return AgentConfiguration{
+      conf->agent_dir,
+      conf->agent_redact,
+      conf->log_file.empty() ? conf->agent_dir + "/trace" : conf->log_file,
+      conf->settings,
+      conf->agent_sensitive_paths,
+      conf->dftracer_settings()};
+}
+
+Artifact store_artifact(std::string_view content) {
+  MOIRAI_LOG_TRACE();
+  return active_artifacts()->put(content);
+}
+
+Artifact store_artifact_file(const std::string& path, Lifetime lifetime) {
+  MOIRAI_LOG_TRACE();
+  return active_artifacts()->put_file(path, lifetime);
+}
+
+bool read_artifact(const std::string& uri, std::string* content,
+                   const std::string& log_file) {
+  MOIRAI_LOG_TRACE();
+  if (content == nullptr) return false;
+  if (log_file.empty()) return active_artifacts()->read(uri, content);
+  return ArtifactStore(log_file, false).read(uri, content);
+}
 }  // namespace moirai
 
 namespace {
@@ -106,6 +151,12 @@ std::string str(const char* s) { return s == nullptr ? std::string() : s; }
 moirai::Activity* activity_of(struct MoiraiActivityData* data) {
   return data == nullptr ? nullptr
                          : static_cast<moirai::Activity*>(data->activity);
+}
+int copy_uri(const moirai::Artifact& artifact, char* uri) {
+  if (!artifact) return 0;
+  if (uri != nullptr)
+    std::snprintf(uri, MOIRAI_ARTIFACT_URI_LEN, "%s", artifact.uri.c_str());
+  return 1;
 }
 }  // namespace
 
@@ -178,6 +229,34 @@ MoiraiId moirai_activity_relate_entity(struct MoiraiActivityData* data,
   if (activity == nullptr)
     return moirai::Entity(type, key, store, str(uri)).id();
   return activity->relate(relation, type, key, store, str(uri)).id();
+}
+
+int moirai_artifact(const void* data, size_t size, char* uri) {
+  MOIRAI_LOG_TRACE();
+  if (data == nullptr && size > 0) return 0;
+  return copy_uri(
+      moirai::store_artifact({static_cast<const char*>(data), size}), uri);
+}
+
+int moirai_artifact_file(const char* path, MoiraiArtifactLifetime lifetime,
+                         char* uri) {
+  MOIRAI_LOG_TRACE();
+  if (path == nullptr) return 0;
+  return copy_uri(moirai::store_artifact_file(path, lifetime), uri);
+}
+
+int moirai_artifact_read(const char* uri, void** data, size_t* size,
+                         const char* log_file) {
+  MOIRAI_LOG_TRACE();
+  if (uri == nullptr || data == nullptr || size == nullptr) return 0;
+  std::string content;
+  if (!moirai::read_artifact(uri, &content, str(log_file))) return 0;
+  *data = std::malloc(content.size() + 1);
+  if (*data == nullptr) return 0;
+  std::memcpy(*data, content.data(), content.size());
+  static_cast<char*>(*data)[content.size()] = '\0';
+  *size = content.size();
+  return 1;
 }
 
 void moirai_activity_end(struct MoiraiActivityData* data) {

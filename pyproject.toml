@@ -2,7 +2,7 @@
 # The dftracer wheel is a build requirement too: moirai's wheel is built
 # against it (MOIRAI_DFTRACER=PACKAGE) and runs on it. It needs dftracer's
 # event-type API, which no dftracer release has yet: for now the pin is the
-# build of dftracer's feature/generic-event-api branch (2.2.0.post17.dev0,
+# build of dftracer's develop branch (2.2.0.post17.dev0,
 # what CI installs from git). Replace it with the first release that has it.
 requires = ["scikit-build-core>=0.10", "pybind11>=2.12", "dftracer>=2.2.0.post17.dev0"]
 build-backend = "scikit_build_core.build"

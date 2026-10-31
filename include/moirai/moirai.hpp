@@ -16,13 +16,18 @@
 #include <dftracer/dftracer.h>
 #include <moirai/moirai.h>
 
+#include <cstdint>
 #include <string>
+#include <string_view>
+#include <utility>
+#include <vector>
 
 namespace moirai {
 using Id = MoiraiId;
 using Store = MoiraiStore;
 using Role = MoiraiRole;
 using Relation = MoiraiRelation;
+using Lifetime = MoiraiArtifactLifetime;
 
 // moirai's dftracer event types, on its own layer.
 // Activities: data events that are never aggregated -- every one is traced.
@@ -94,6 +99,11 @@ class Activity {
                 const std::string& key, Store store = MOIRAI_STORE_MEMORY,
                 const std::string& uri = "");
 
+  // What it really spanned, in microseconds since the epoch, when that is not
+  // the object's lifetime: what ran in other processes, known afterwards. In
+  // the event's args start_us and end_us; its own ts is when it was recorded.
+  void span(uint64_t start_us, uint64_t end_us);
+
   void used(const Entity& entity) { relate(MOIRAI_REL_USED, entity); }
   void generated(const Entity& entity) { relate(MOIRAI_REL_GENERATED, entity); }
   void invalidated(const Entity& entity) {
@@ -110,6 +120,43 @@ class Activity {
     return relate(MOIRAI_REL_GENERATED, type, key, store, uri);
   }
 };
+
+// Content kept next to the trace, in <log file>.artifacts; give its uri to an
+// Entity, so the trace holds only the key:
+//
+//   moirai::Artifact out = moirai::store_artifact(stdout_text);
+//   moirai::Entity("tool.output", id, MOIRAI_STORE_DATABASE, out.uri);
+struct Artifact {
+  std::string uri;  // empty when the content could not be read
+  uint64_t size = 0;
+  Lifetime lifetime = MOIRAI_ARTIFACT_TRANSIENT;
+  explicit operator bool() const { return !uri.empty(); }
+};
+// Store content (transient), once. Tracing off, it is only addressed.
+Artifact store_artifact(std::string_view content);
+// The uri content would have, storing nothing.
+std::string artifact_uri(std::string_view content);
+// A file: its content stored if transient, a link to it if persistent.
+Artifact store_artifact_file(const std::string& path,
+                             Lifetime lifetime = MOIRAI_ARTIFACT_PERSISTENT);
+// The content at uri, from any process's shard; false if it is not there or a
+// linked file has changed. log_file: the run's trace prefix; empty, this one.
+bool read_artifact(const std::string& uri, std::string* content,
+                   const std::string& log_file = "");
+
+// moirai.agent's settings, from MOIRAI_AGENT_* (docs/agents.rst).
+struct AgentConfiguration {
+  std::string dir;
+  std::string redact;
+  std::string log_file;  // MOIRAI_LOG_FILE, or <dir>/trace
+  // Every MOIRAI_<X> set, for a process that will not inherit it.
+  std::vector<std::pair<std::string, std::string>> settings;
+  // MOIRAI_AGENT_SENSITIVE_PATHS: globs added to the built-in sensitive files.
+  std::string sensitive_paths;
+  // The MOIRAI_<X> that are dftracer's, translated: DFTRACER_<X>.
+  std::vector<std::pair<std::string, std::string>> dftracer_settings;
+};
+AgentConfiguration agent_configuration();
 }  // namespace moirai
 
 // Activities for the enclosing scope, as dftracer's regions:

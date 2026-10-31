@@ -34,6 +34,9 @@ class PyActivity {
     if (activity_) return activity_->relate(relation, type, key, store, uri);
     return moirai::Entity(type, key, store, uri);
   }
+  void span(uint64_t start_us, uint64_t end_us) {
+    if (activity_) activity_->span(start_us, end_us);
+  }
   void end() { activity_.reset(); }
   bool active() const { return activity_ != nullptr; }
   const std::string& name() const { return name_; }
@@ -49,6 +52,7 @@ PYBIND11_MODULE(MOIRAI_PY_MODULE, m) {
   m.attr("DEFAULT_TRACE_IO") = MOIRAI_DEFAULT_TRACE_IO != 0;
   m.attr("HAS_HDF5") = MOIRAI_HAS_HDF5 != 0;
   m.attr("HAS_MPI") = MOIRAI_HAS_MPI != 0;
+  m.attr("HAS_ARTIFACT_STORE") = MOIRAI_HAS_ARTIFACT_STORE != 0;
 
   py::enum_<MoiraiStore>(m, "Store", py::module_local())
       .value("MEMORY", MOIRAI_STORE_MEMORY)
@@ -80,6 +84,10 @@ PYBIND11_MODULE(MOIRAI_PY_MODULE, m) {
       .value("ALTERNATE_OF", MOIRAI_REL_ALTERNATE_OF)
       .value("DEPENDS_ON", MOIRAI_REL_DEPENDS_ON);
 
+  py::enum_<MoiraiArtifactLifetime>(m, "Lifetime", py::module_local())
+      .value("TRANSIENT", MOIRAI_ARTIFACT_TRANSIENT)
+      .value("PERSISTENT", MOIRAI_ARTIFACT_PERSISTENT);
+
   m.def("initialize", &moirai::initialize, py::arg("log_file") = "",
         "Configure dftracer for provenance and start tracing");
   m.def("finalize", &moirai::finalize, "Stop tracing and flush");
@@ -88,6 +96,52 @@ PYBIND11_MODULE(MOIRAI_PY_MODULE, m) {
       "relation_name",
       [](MoiraiRelation r) { return std::string(moirai_relation_name(r)); },
       py::arg("relation"));
+
+  py::class_<moirai::Artifact>(m, "Artifact", py::module_local())
+      .def_readonly("uri", &moirai::Artifact::uri)
+      .def_readonly("size", &moirai::Artifact::size)
+      .def_readonly("lifetime", &moirai::Artifact::lifetime)
+      .def("__bool__",
+           [](const moirai::Artifact& a) { return static_cast<bool>(a); })
+      .def("__repr__",
+           [](const moirai::Artifact& a) { return "Artifact(" + a.uri + ")"; });
+  m.def(
+      "store_artifact",
+      [](py::bytes content) {
+        std::string_view view = content;
+        py::gil_scoped_release release;
+        return moirai::store_artifact(view);
+      },
+      py::arg("content"));
+  m.def(
+      "artifact_uri",
+      [](py::bytes content) {
+        return moirai::artifact_uri(std::string_view(content));
+      },
+      py::arg("content"));
+  m.def("store_artifact_file", &moirai::store_artifact_file, py::arg("path"),
+        py::arg("lifetime") = MOIRAI_ARTIFACT_PERSISTENT,
+        py::call_guard<py::gil_scoped_release>());
+  m.def(
+      "read_artifact",
+      [](const std::string& uri, const std::string& log_file) -> py::object {
+        std::string content;
+        if (!moirai::read_artifact(uri, &content, log_file)) return py::none();
+        return py::bytes(content);
+      },
+      py::arg("uri"), py::arg("log_file") = "");
+
+  py::class_<moirai::AgentConfiguration>(m, "AgentConfiguration",
+                                         py::module_local())
+      .def_readonly("dir", &moirai::AgentConfiguration::dir)
+      .def_readonly("redact", &moirai::AgentConfiguration::redact)
+      .def_readonly("log_file", &moirai::AgentConfiguration::log_file)
+      .def_readonly("settings", &moirai::AgentConfiguration::settings)
+      .def_readonly("sensitive_paths",
+                    &moirai::AgentConfiguration::sensitive_paths)
+      .def_readonly("dftracer_settings",
+                    &moirai::AgentConfiguration::dftracer_settings);
+  m.def("agent_configuration", &moirai::agent_configuration);
 
   py::class_<moirai::EntityType>(m, "EntityType", py::module_local())
       .def(py::init<const std::string&, moirai::Role, const std::string&>(),
@@ -118,6 +172,7 @@ PYBIND11_MODULE(MOIRAI_PY_MODULE, m) {
       .def("relate_entity", &PyActivity::relate_entity, py::arg("relation"),
            py::arg("type"), py::arg("key"),
            py::arg("store") = MOIRAI_STORE_MEMORY, py::arg("uri") = "")
+      .def("span", &PyActivity::span, py::arg("start_us"), py::arg("end_us"))
       .def("end", &PyActivity::end)
       .def_property_readonly("active", &PyActivity::active)
       .def_property_readonly("name", &PyActivity::name);

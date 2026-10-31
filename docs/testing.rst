@@ -107,3 +107,28 @@ from ``site-packages``, the libraries load, both ``moirai-service`` builds
 start, and the scenario passes end to end through ``moirai-service``,
 release and ``_dbg``. ``scripts/wheel/build_wheels.sh`` runs it on every
 wheel it builds.
+
+------------------------------------------
+Agent smoke tests
+------------------------------------------
+
+``test/py/test_agent.py`` runs in ``ctest``: the installed hook command, with
+nothing inherited, on payloads of each harness's shape. So do
+``test_agent_manifest.py`` (manifests, sensitive files and ``read_text`` through
+the hook and the store), ``test_datadir_native.py`` (``MOIRAI_DATA_DIR``) and,
+with no service or store and ``fake_api.py`` for moirai's API, ``test_shell.py``,
+``test_manifest.py``, ``test_record.py``, ``test_redact.py`` and
+``test_artifact_client.py``. None can tell whether a harness really sends them.
+``test/smoke/smoke_agent.sh`` can: one real session, which runs a script that writes a file, through ``moirai-service``, and
+``test/smoke/check_agent.py`` on what it left. It is not in ``ctest``, as it needs
+the harness, and Claude Code's run is a real model call.
+
+.. code-block:: bash
+
+   bash test/smoke/smoke_agent.sh <claude|codex> <build dir> <python>
+
+It works in ``<build dir>/smoke/<harness>``; ``harness.out`` and
+``run/hook.log`` there say what happened. Codex runs on
+``test/smoke/fake_responses.py``, a stand-in model on ``127.0.0.1``, so no key is
+needed. Codex only runs hooks that were trusted with ``/hooks``: otherwise it
+works as usual and records nothing, and the check fails.
