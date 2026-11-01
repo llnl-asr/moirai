@@ -102,14 +102,8 @@ class Recorder:
                   updated=()):
         api = self.api
         session["activities"] = session.get("activities", 0) + 1
-        activity = api.Activity(name).begin()
-        activity.span(start, now_us())
-        for relation, entities in ((api.Relation.USED, used),
-                                   (api.Relation.GENERATED, generated),
-                                   (api.Relation.UPDATED, updated)):
-            for e in entities:
-                activity.relate(relation, e)
-        activity.end()
+        api.log_activity(name, start, now_us(), used=used,
+                         generated=generated, updated=updated)
 
     def _session(self, ev):
         sid = str(ev.get("session") or "unknown")
@@ -302,14 +296,13 @@ class Recorder:
         shown = self.content.path(path)  # no secret in a name, no sensitive one
         if size > MAX_FILE or self.content.sensitive(path):
             # Named, not kept: too large to digest, or not to be copied.
-            return int(api.entity("file", shown, api.Store.PARALLEL_FS,
-                                  "file://" + shown))
+            return int(api.entity("file", shown, api.Store.PARALLEL_FS, shown))
         lifetime = (api.Lifetime.TRANSIENT if path.startswith(TRANSIENT_PREFIXES)
                     else api.Lifetime.PERSISTENT)
         artifact = self.content.file(path, lifetime)
         if not artifact:
             return None
         e = int(api.entity("file", f"{shown}@{artifact.uri}", api.Store.DATABASE,
-                           named_uri(artifact.uri, shown)))
+                           shown))
         session["files"][path] = e
         return e

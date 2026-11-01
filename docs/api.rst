@@ -135,6 +135,10 @@ Python
        m0 = train.generates("model", "m0")
    moirai.relate(Relation.DERIVED_FROM, m0, in0)
 
+   # An activity that ran elsewhere and is known afterwards (a tool a hook saw
+   # begin and end in other processes): one event with the span it had.
+   moirai.log_activity("tool.run", start_us, end_us, used=[in0], generated=[m0])
+
    @moirai.activity(used=[("dataset", "in0")], generated=[("model", "m1")])
    def refine():
        ...

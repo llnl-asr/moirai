@@ -292,7 +292,7 @@ title).
 
 To tie a command's I/O to its tool call: the call's processes are the
 ``tool.process`` root pid plus every process dftracer saw ``start`` (with a
-``ppid`` already in the set) during the call's ``start_us``..``end_us``. Their
+``ppid`` already in the set) during the call's ``ts``..``ts + dur``. Their
 ``POSIX`` and ``STDIO`` events are the call's I/O, and ``FH`` records map a file
 hash to its path. Bound by the call's time window, not by pid alone: a sandbox can
 give every command the same pids. Repeated calls may arrive aggregated

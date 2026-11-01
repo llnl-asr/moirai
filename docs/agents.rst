@@ -141,8 +141,8 @@ How it runs
 A hook is a moirai process like any other: it initializes, writes through
 ``moirai-service`` and leaves, so start the service as for any application
 (:doc:`running`); without one, each hook has a spill file. An activity is written
-when it ends, and its args ``start_us`` and ``end_us`` hold what it really
-spanned. What must outlive a hook is in ``<dir>/sessions``, under a lock. A hook
+when it ends, with ``moirai.log_activity``: the event's own ``ts`` and ``dur`` are
+what it really spanned, as for any application's activity. What must outlive a hook is in ``<dir>/sessions``, under a lock. A hook
 prints nothing and never fails its agent; what went wrong is in
 ``<dir>/hook.log``.
 
@@ -263,7 +263,7 @@ Which I/O belongs to which call
    the command ran as, on the node of the trace. The call's processes are that
    pid and the closure of the dftracer ``start`` events (``cat=dftracer``,
    ``name=start``, ``args.ppid``) below it. A pid can be reused, so take only
-   ``start`` events inside the activity's ``args.start_us``..``args.end_us``.
+   ``start`` events inside the activity's ``ts``..``ts + dur``.
    Their I/O is every ``cat`` ``POSIX`` / ``STDIO`` event with such a ``pid``;
    ``args.fhash`` is the file, named by the ``FH`` record
    (``args.value`` = ``fhash``, ``args.name`` = the path) of any process. A call
@@ -273,7 +273,7 @@ From a real trace, the call ``python3 gen.py out.txt; cat out.txt | wc -l`` (the
 lines shortened)::
 
    {"name":"EH","cat":"dftracer","type":128,"pid":4087914,"ph":4,"args":{"uri":"process://tuolumne1001/4087894","store":6,"type":"tool.process","id":"26a9ef0652eab067"}}
-   {"id":2,"name":"tool.Bash","cat":"moirai","type":128,"pid":4087914,"ts":1793391263616308,"dur":75,"ph":1,"args":{"relations":{"used":["9def37c72d49ea94"],"generated":["faaf4996d2a555c8","26a9ef0652eab067"]},"end_us":1793391263616315,"start_us":1793391263263874}}
+   {"id":2,"name":"tool.Bash","cat":"moirai","type":128,"pid":4087914,"ts":1793391263263874,"dur":352434,"ph":1,"args":{"relations":{"used":["9def37c72d49ea94"],"generated":["faaf4996d2a555c8","26a9ef0652eab067"]}}}
    {"id":1,"name":"start","cat":"dftracer","type":1,"pid":4087904,"ts":1793391263420330,"ph":1,"args":{"ppid":4087894,"cmd_hash":"dc888779639771f9",...}}
    {"name":"FH","cat":"dftracer","type":1,"pid":4087904,"ph":4,"args":{"name":"/.../data/out.txt","value":"40b6481bfc599278"}}
    {"id":11,"name":"open64","cat":"POSIX","type":3,"pid":4087904,"ts":1793391263468143,"dur":556,"ph":1,"args":{"flags":524865,"mode":438,"fhash":"40b6481bfc599278"}}

@@ -64,6 +64,18 @@ class FakeAPI:
     def Activity(self, name):
         return _Activity(self, name)
 
+    def log_activity(self, name, start_us, end_us, used=(), generated=(),
+                     invalidated=(), updated=()):
+        act = _Activity(self, name)
+        act.span(start_us, end_us)
+        for relation, entities in (("used", used), ("generated", generated),
+                                   ("invalidated", invalidated),
+                                   ("updated", updated)):
+            for e in entities:
+                act.relate(relation, e)
+        act.end()
+        return True
+
     def store_artifact(self, text):
         self.artifacts.append(text)
         return types.SimpleNamespace(

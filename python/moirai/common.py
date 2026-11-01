@@ -12,8 +12,8 @@ API = [
     "EntityType", "HAS_ARTIFACT_STORE", "HAS_HDF5", "HAS_MPI", "LAYER",
     "Lifetime", "Relation", "Role", "Store", "activity",
     "agent_configuration", "artifact_uri", "entity",
-    "entity_type", "finalize", "initialize", "is_active", "read_artifact",
-    "relate", "relation_name", "store_artifact", "store_artifact_file",
+    "entity_type", "finalize", "initialize", "is_active", "log_activity",
+    "read_artifact", "relate", "relation_name", "store_artifact", "store_artifact_file",
 ]
 
 
@@ -106,6 +106,46 @@ def make_api(native):
         def generates(self, type, key, store=Store.MEMORY, uri=""):
             return self.relate(Relation.GENERATED, (type, key, store, uri))
 
+    def log_activity(name, start_us, end_us, used=(), generated=(),
+                     invalidated=(), updated=()):
+        """One activity event with the span it really had, written now.
+
+        For what ran elsewhere and is known afterwards, such as a tool a hook
+        saw begin and end in other processes. The event's own ``ts`` and
+        ``dur`` are the span, so any reader of the trace places it where it
+        happened, and its ``pid`` is this process. ``start_us`` and ``end_us``
+        are microseconds since the epoch; the entities are as for
+        :class:`Activity`. Returns whether it was written."""
+        from importlib import import_module
+
+        suffix = "_dbg" if native.__name__.endswith("_dbg") else ""
+        try:
+            core = import_module("dftracer.dftracer" + suffix)
+        except ImportError:
+            return False
+        start_us = int(start_us)
+        duration = max(0, int(end_us) - start_us)
+        groups = (("used", used), ("generated", generated),
+                  ("invalidated", invalidated), ("updated", updated))
+        ids = {name: [int(as_entity(e)) for e in entities]
+               for name, entities in groups}
+        ids = {name: v for name, v in ids.items() if v}
+        enum = getattr(core, "EntityRelation", None)
+        if enum is not None:
+            # A dftracer whose log_event takes the relations itself, as
+            # pydftracer's does.
+            core.log_event(
+                name, native.CATEGORY, start_us, duration,
+                relations={getattr(enum, key.upper()): v
+                           for key, v in ids.items()} or None)
+        else:
+            core.log_event(
+                name, native.CATEGORY, start_us, duration,
+                list_args={"relations": {k: ["%016x" % i for i in v]
+                                         for k, v in ids.items()}}
+                if ids else {})
+        return True
+
     def activity(name=None, used=(), generated=(), invalidated=(),
                  updated=()):
         """Decorator: each call of the function is an activity named
@@ -180,6 +220,7 @@ def make_api(native):
         "finalize": native.finalize,
         "initialize": initialize,
         "is_active": native.is_active,
+        "log_activity": log_activity,
         "read_artifact": read_artifact,
         "relate": relate,
         "relation_name": native.relation_name,
