@@ -164,8 +164,7 @@ expect("make out.txt" not in text, "a prompt in the trace")
 entities = {r["args"]["id"]: r["args"] for r in records if r["name"] == "EH"}
 activities = [r for r in records if r.get("cat") == "moirai"]
 for a in activities:
-    args = a["args"]
-    expect(0 < args["start_us"] <= args["end_us"], f"the span of {a['name']}")
+    expect(a["ts"] > 0 and a["dur"] >= 0, f"the span of {a['name']}")
 expect(os.listdir(prefix + ".artifacts") == [os.uname().nodename],
        "the hooks share the node's artifact store")
 expect(not os.listdir(os.path.join(work, "run", "sessions")) or all(

@@ -209,7 +209,7 @@ while True:
     mine |= more
 expect(root in parents, "the root process was traced by the preload")
 starts = [r["ts"] for r in recs if r["name"] == "start" and r.get("pid") == root]
-expect(starts and all(span["start_us"] <= t <= span["end_us"] for t in starts),
+expect(starts and all(span["ts"] <= t <= span["ts"] + span["dur"] for t in starts),
        "the root started within the activity's span")
 expect(len(mine) >= 3, f"the command's children were traced: {sorted(mine)}")
 
