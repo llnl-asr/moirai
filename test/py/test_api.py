@@ -45,6 +45,8 @@ def cleanup():
 
 
 moirai.initialize()
+moirai.metadata("app.setting", "42")
+assert moirai.identity_hash("user", "alice") == moirai.identity_hash("user", "alice") != moirai.identity_hash("group", "alice")
 
 moirai.entity_type("dataset", Role.INPUT, "raw input")
 moirai.entity_type("model", Role.OUTPUT, "trained model")

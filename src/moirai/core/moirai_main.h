@@ -31,8 +31,16 @@ class MoiraiCore {
   std::shared_ptr<EntityRegistry> registry() const;
   // The artifact store, from initialize to finalize, else nullptr.
   std::shared_ptr<ArtifactStore> artifacts() const;
+  // Writes one process metadata record (CM); the caller knows tracing is on.
+  static void write_metadata(const std::string& key, const std::string& value);
+  static std::string identity_hash(const std::string& kind,
+                                   const std::string& value);
 
  private:
+  // At initialize, while tracing: who ran the process (hashes, and the names
+  // as identity entities), the job, and its configuration environment.
+  void record_process();
+
   mutable std::mutex mtx_;
   std::shared_ptr<ConfigurationManager> conf_;
   std::shared_ptr<EntityRegistry> registry_;

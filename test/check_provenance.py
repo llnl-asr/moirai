@@ -16,11 +16,19 @@ on moirai's layer, never aggregated, relating the declared entities. In the
 "direct" scenario the same entities and relations are declared without any
 activity, and there must be none. With io 1 the activity "load" wrote and read
 <work>/data/load.bin, and those calls are traced; with io 0 no I/O is.
+
+Every traced process also carries its process metadata (CM records): who ran
+it as user_hash/group_hash (moirai_hash of the kind and MOIRAI_ID_SALT + the
+name), the job, and its configuration environment (env.MOIRAI_*, ...) with the
+user's name masked; the names behind the hashes are "identity" entities related
+to nothing. No metadata value holds the user's name.
 """
 import glob
+import grp
 import gzip
 import json
 import os
+import pwd
 import sys
 
 LAYER = 128  # MOIRAI_LAYER
@@ -91,6 +99,41 @@ def read(files):
     return events
 
 
+def check_process_metadata(events, types, entities, relations):
+    """Who ran the process (hashes, and identity entities naming them), and its
+    configuration environment; the identity records are then set aside."""
+    salt = os.environ.get("MOIRAI_ID_SALT", "")
+    user = pwd.getpwuid(os.getuid()).pw_name
+    group = grp.getgrgid(os.getgid()).gr_name
+    uh, gh = entity_id("user", salt + user), entity_id("group", salt + group)
+    meta = {}
+    for e in events:
+        if e.get("name") == "CM":
+            a = e.get("args") or {}
+            meta[str(a.get("name"))] = str(a.get("value"))
+    if meta.get("user_hash") != uh or meta.get("group_hash") != gh:
+        fail(f"process metadata user_hash/group_hash {meta.get('user_hash')}/"
+             f"{meta.get('group_hash')} != {uh}/{gh}")
+    if meta.get("app.setting") != "42":
+        fail(f"the application's own metadata app.setting=42 is missing: {meta.get('app.setting')}")
+    if not any(k.startswith("env.MOIRAI_") for k in meta):
+        fail(f"no env.MOIRAI_* process metadata: {sorted(meta)}")
+    if len(user) >= 3:
+        named = [k for k, v in meta.items() if user in v]
+        if named:
+            fail(f"the user's name is in process metadata {named}")
+    if types.pop("identity", {}).get("role") != 5:
+        fail("no identity entity type (role REFERENCE)")
+    ids = {entity_id("identity", uh): f"{uh}={user}",
+           entity_id("identity", gh): f"{gh}={group}"}
+    for i, uri in ids.items():
+        e = entities.pop(i, None)
+        if e is None or e.get("uri") != uri or e.get("type") != "identity":
+            fail(f"identity {i}: {e} is not {uri}")
+    if any(i in ids for r in relations for i in r[1:]):
+        fail("an identity entity is related: it must stand alone")
+
+
 def main():
     work, mode, io = sys.argv[1], sys.argv[2], sys.argv[3] == "1"
     scenario = sys.argv[4] if len(sys.argv) > 4 else "activities"
@@ -159,6 +202,7 @@ def main():
         elif e.get("cat") in ("POSIX", "STDIO") and on_load_bin(args):
             io_events.append(e)
 
+    check_process_metadata(events, types, entities, relations)
     if types != ENTITY_TYPES:
         fail(f"entity types {types} != {ENTITY_TYPES}")
     if entities != ENTITIES:

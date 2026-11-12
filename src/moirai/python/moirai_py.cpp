@@ -92,6 +92,11 @@ PYBIND11_MODULE(MOIRAI_PY_MODULE, m) {
         "Configure dftracer for provenance and start tracing");
   m.def("finalize", &moirai::finalize, "Stop tracing and flush");
   m.def("is_active", &moirai::is_active);
+  m.def("metadata", &moirai::metadata, py::arg("key"), py::arg("value"),
+        "Record one key/value pair of this process (a dftracer CM record)");
+  m.def("identity_hash", &moirai::identity_hash, py::arg("kind"),
+        py::arg("value"),
+        "The hash moirai keeps for an identifying string of a kind");
   m.def(
       "relation_name",
       [](MoiraiRelation r) { return std::string(moirai_relation_name(r)); },

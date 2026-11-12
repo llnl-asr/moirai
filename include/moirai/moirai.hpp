@@ -52,6 +52,18 @@ bool initialize(const std::string& log_file = "");
 void finalize();
 bool is_active();
 
+// Process metadata: one key/value pair of this process, a dftracer metadata
+// record (CM: args.name = key, args.value = value). Nothing is written when
+// tracing is off. initialize() already records who ran the process (as
+// hashes), the job, and its configuration environment (see
+// docs/configuration.rst, "Process metadata").
+void metadata(const std::string& key, const std::string& value);
+// The hash moirai keeps for an identifying string of a kind ("user",
+// "group", ...): moirai_hash(kind, MOIRAI_ID_SALT + value) as 16 hex digits.
+// The name behind it is recorded only as an "identity" entity related to
+// nothing, so dropping the identity records anonymizes a trace.
+std::string identity_hash(const std::string& kind, const std::string& value);
+
 // An entity type, described once per process (an ET record).
 class EntityType {
   std::string name_;
