@@ -28,3 +28,32 @@ def test_moirai_settings_become_dftracer_settings():
 def test_disabled_moirai_disables_dftracer():
     got, err = run({"MOIRAI_ENABLE": "off"})
     assert got[0] == "0", (got, err)
+
+
+def _fake_pydftracer(tmp_path):
+    """A pydftracer that records the environment it was imported under."""
+    pkg = tmp_path / "dftracer" / "python"
+    pkg.mkdir(parents=True)
+    (tmp_path / "dftracer" / "__init__.py").write_text("")
+    (pkg / "__init__.py").write_text(
+        "import os\nENABLE = os.environ.get('DFTRACER_ENABLE')\nATTACH = os.environ.get('DFTRACER_ATTACH')\nINIT = os.environ.get('DFTRACER_INIT')\n"
+        "dft_fn = object()\ndftracer = object()\nai = object()\n"
+    )
+
+
+def test_moirai_imports_pydftracer_after_setting_the_environment(tmp_path):
+    _fake_pydftracer(tmp_path)
+    code = (
+        "import moirai, dftracer.python as P\n"
+        "print(P.ENABLE, P.ATTACH, P.INIT, moirai.dft_fn is P.dft_fn, moirai.dftracer is P.dftracer, moirai.ai is P.ai)\n"
+    )
+    env = {"PATH": os.environ.get("PATH", "/usr/bin:/bin"), "PYTHONPATH": f"{PY}:{tmp_path}"}
+    out = subprocess.run([sys.executable, "-c", code], env=env, capture_output=True, text=True, timeout=60)
+    assert out.stdout.split() == ["1", "1", "FUNCTION", "True", "True", "True"], (out.stdout, out.stderr)
+
+
+def test_moirai_works_without_pydftracer():
+    code = "import sys\nsys.modules['dftracer'] = None            # pydftracer is not installed\nimport moirai\ntry:\n    moirai.dft_fn\nexcept AttributeError:\n    print('absent')\n"
+    env = {"PATH": os.environ.get("PATH", "/usr/bin:/bin"), "PYTHONPATH": str(PY)}
+    out = subprocess.run([sys.executable, "-c", code], env=env, capture_output=True, text=True, timeout=60)
+    assert out.stdout.split() == ["absent"], (out.stdout, out.stderr)

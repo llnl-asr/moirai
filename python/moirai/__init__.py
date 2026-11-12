@@ -59,6 +59,16 @@ def _configure_dftracer_environment():
 
 _configure_dftracer_environment()
 
+# pydftracer is imported here, once the environment is set, so that an application can use its annotations without importing it
+# (moirai.dft_fn, moirai.dftracer, moirai.ai) and so that it never reads DFTRACER_* before moirai has set them. moirai works
+# without pydftracer: it is only left out when it is not installed.
+try:
+    import dftracer.python as _pydftracer
+except ImportError:
+    _pydftracer = None
+
+_PYDFTRACER_API = ("dft_fn", "dftracer", "ai")
+
 _api = None
 
 
@@ -66,6 +76,8 @@ def __getattr__(name):
     # The release binding is loaded on first use, so that importing
     # moirai.dbg never loads it too.
     global _api
+    if name in _PYDFTRACER_API and _pydftracer is not None and hasattr(_pydftracer, name):
+        return getattr(_pydftracer, name)
     if name not in __all__:
         raise AttributeError(f"module 'moirai' has no attribute {name!r}")
     if _api is None:
@@ -77,4 +89,4 @@ def __getattr__(name):
 
 
 def __dir__():
-    return sorted(list(globals()) + list(__all__))
+    return sorted(list(globals()) + list(__all__) + [n for n in _PYDFTRACER_API if _pydftracer is not None and hasattr(_pydftracer, n)])

@@ -102,9 +102,14 @@ when it is imported, which is before an application starts moirai. So
 that moirai runs instead of initializing it a second time (a second
 initialization makes the process abort at exit and the decorators log
 nothing), and leaves ``finalize`` to moirai. pydftracer reads only this
-variable; it does not look for moirai. Import ``moirai`` before the first
-``dftracer.python`` import: pydftracer decides at its own import whether it is
-enabled.
+variable; it does not look for moirai.
+
+``import moirai`` also imports pydftracer, after setting the variables above,
+so that an application can use pydftracer's annotations without importing it:
+``moirai.dft_fn`` (the function decorator), ``moirai.dftracer`` (``initialize_log``
+and the regions) and ``moirai.ai``. moirai works without pydftracer; these names
+are then absent. Import ``moirai`` before the first ``dftracer.python`` import:
+pydftracer decides at its own import whether it is enabled.
 
 ------------------------------------------
 Process metadata
