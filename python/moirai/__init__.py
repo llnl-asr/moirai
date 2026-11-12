@@ -45,6 +45,7 @@ def _configure_dftracer_environment():
     environ["DFTRACER_ENABLE"] = "1" if flag("MOIRAI_ENABLE", True) else "0"
     environ["DFTRACER_ENABLE_PC_MODE"] = "1"      # provenance always goes through the service or its spill file
     environ["DFTRACER_INIT"] = "FUNCTION"         # moirai starts dftracer itself
+    environ["DFTRACER_ATTACH"] = "1"              # moirai owns the core: pydftracer's initialize_log attaches, never initializes it again
     if environ.get("MOIRAI_LOG_FILE"):
         environ["DFTRACER_LOG_FILE"] = environ["MOIRAI_LOG_FILE"]
     if environ.get("MOIRAI_TRACE_IO"):
@@ -58,6 +59,16 @@ def _configure_dftracer_environment():
 
 _configure_dftracer_environment()
 
+# pydftracer is imported here, once the environment is set, so that an application can use its annotations without importing it
+# (moirai.dft_fn, moirai.dftracer, moirai.ai) and so that it never reads DFTRACER_* before moirai has set them. moirai works
+# without pydftracer: it is only left out when it is not installed.
+try:
+    import dftracer.python as _pydftracer
+except ImportError:
+    _pydftracer = None
+
+_PYDFTRACER_API = ("dft_fn", "dftracer", "ai")
+
 _api = None
 
 
@@ -65,6 +76,8 @@ def __getattr__(name):
     # The release binding is loaded on first use, so that importing
     # moirai.dbg never loads it too.
     global _api
+    if name in _PYDFTRACER_API and _pydftracer is not None and hasattr(_pydftracer, name):
+        return getattr(_pydftracer, name)
     if name not in __all__:
         raise AttributeError(f"module 'moirai' has no attribute {name!r}")
     if _api is None:
@@ -76,4 +89,4 @@ def __getattr__(name):
 
 
 def __dir__():
-    return sorted(list(globals()) + list(__all__))
+    return sorted(list(globals()) + list(__all__) + [n for n in _PYDFTRACER_API if _pydftracer is not None and hasattr(_pydftracer, n)])
