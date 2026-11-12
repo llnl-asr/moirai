@@ -45,6 +45,7 @@ def _configure_dftracer_environment():
     environ["DFTRACER_ENABLE"] = "1" if flag("MOIRAI_ENABLE", True) else "0"
     environ["DFTRACER_ENABLE_PC_MODE"] = "1"      # provenance always goes through the service or its spill file
     environ["DFTRACER_INIT"] = "FUNCTION"         # moirai starts dftracer itself
+    environ["DFTRACER_ATTACH"] = "1"              # moirai owns the core: pydftracer's initialize_log attaches, never initializes it again
     if environ.get("MOIRAI_LOG_FILE"):
         environ["DFTRACER_LOG_FILE"] = environ["MOIRAI_LOG_FILE"]
     if environ.get("MOIRAI_TRACE_IO"):

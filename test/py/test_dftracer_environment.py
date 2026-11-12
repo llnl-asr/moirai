@@ -8,7 +8,7 @@ PY = Path(__file__).resolve().parents[2] / "python"
 
 
 def run(env_extra):
-    code = "import os, moirai; print(*[os.environ.get(k, '-') for k in ('DFTRACER_ENABLE','DFTRACER_INIT','DFTRACER_ENABLE_PC_MODE','DFTRACER_LOG_FILE','DFTRACER_DISABLE_IO','DFTRACER_DATA_DIR')])"
+    code = "import os, moirai; print(*[os.environ.get(k, '-') for k in ('DFTRACER_ENABLE','DFTRACER_INIT','DFTRACER_ENABLE_PC_MODE','DFTRACER_LOG_FILE','DFTRACER_DISABLE_IO','DFTRACER_DATA_DIR','DFTRACER_ATTACH')])"
     env = {"PATH": os.environ.get("PATH", "/usr/bin:/bin"), "PYTHONPATH": str(PY), **env_extra}
     out = subprocess.run([sys.executable, "-c", code], env=env, capture_output=True, text=True, timeout=60)
     return out.stdout.split(), out.stderr
@@ -17,6 +17,7 @@ def run(env_extra):
 def test_defaults_enable_dftracer_in_function_mode():
     got, err = run({})
     assert got[:3] == ["1", "FUNCTION", "1"], (got, err)
+    assert got[6] == "1", (got, err)                 # DFTRACER_ATTACH: pydftracer attaches to moirai's core
 
 
 def test_moirai_settings_become_dftracer_settings():

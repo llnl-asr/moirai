@@ -5,7 +5,9 @@ Configuration
 moirai is configured with ``MOIRAI_*`` environment variables only. When the
 application calls ``moirai_initialize`` (and when ``moirai-service`` starts),
 moirai translates them into dftracer's ``DFTRACER_*`` settings before
-dftracer reads its configuration. An application never sets ``DFTRACER_*``.
+dftracer reads its configuration. A Python application also gets them when it
+imports ``moirai`` (see `dftracer from Python`_). An application never sets
+``DFTRACER_*``.
 
 ------------------------------------------
 moirai's settings
@@ -66,6 +68,43 @@ Every other ``MOIRAI_<X>`` is dftracer's ``DFTRACER_<X>``, for example:
        in ``/dev/shm`` (default 1024 x 1 MiB); see :doc:`running`
    * - ``MOIRAI_TRACE_COMPRESSION``, ...
      - the same ``DFTRACER_*`` setting
+
+------------------------------------------
+dftracer from Python
+------------------------------------------
+
+pydftracer (``dftracer.python``, the ``dft_fn`` decorators and
+``dftracer.initialize_log``) reads ``DFTRACER_ENABLE`` and ``DFTRACER_INIT``
+when it is imported, which is before an application starts moirai. So
+``import moirai`` applies the application side of the translation above in
+``os.environ`` at once, with the same names and values, and
+``moirai_initialize`` applies it again:
+
+.. list-table::
+   :header-rows: 1
+
+   * - Variable set at import
+     - Value
+   * - ``DFTRACER_ENABLE``
+     - ``1``, or ``0`` when ``MOIRAI_ENABLE`` turns tracing off
+   * - ``DFTRACER_INIT``
+     - ``FUNCTION``: moirai starts dftracer itself
+   * - ``DFTRACER_ENABLE_PC_MODE``
+     - ``1``: events go through the service or its spill file
+   * - ``DFTRACER_ATTACH``
+     - ``1``: moirai owns the tracing core of the process
+   * - ``DFTRACER_LOG_FILE``, ``DFTRACER_DISABLE_IO``
+     - from ``MOIRAI_LOG_FILE`` and ``MOIRAI_TRACE_IO`` when they are set
+   * - ``DFTRACER_<X>``
+     - from every other ``MOIRAI_<X>``
+
+``DFTRACER_ATTACH=1`` makes pydftracer's ``initialize_log`` attach to the core
+that moirai runs instead of initializing it a second time (a second
+initialization makes the process abort at exit and the decorators log
+nothing), and leaves ``finalize`` to moirai. pydftracer reads only this
+variable; it does not look for moirai. Import ``moirai`` before the first
+``dftracer.python`` import: pydftracer decides at its own import whether it is
+enabled.
 
 ------------------------------------------
 Process metadata
