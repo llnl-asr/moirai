@@ -44,6 +44,7 @@ int main(int argc, char* argv[]) {
   const int direct = argc > 1 && strcmp(argv[1], "direct") == 0;
   MoiraiId in0, in1, cfg, m0, m1, tmp;
   moirai_initialize(NULL);
+  moirai_metadata("app.setting", "42");
 
   moirai_entity_type("dataset", MOIRAI_ROLE_INPUT, "raw input");
   moirai_entity_type("model", MOIRAI_ROLE_OUTPUT, "trained model");

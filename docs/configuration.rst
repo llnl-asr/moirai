@@ -68,6 +68,50 @@ Every other ``MOIRAI_<X>`` is dftracer's ``DFTRACER_<X>``, for example:
      - the same ``DFTRACER_*`` setting
 
 ------------------------------------------
+Process metadata
+------------------------------------------
+
+While tracing, ``moirai_initialize`` records who ran the process and how it
+was configured, as dftracer process metadata (``CM`` records:
+``args.name``/``args.value``), once per process:
+
+* ``user_hash``, ``group_hash``: the user and group, only as hashes
+  (``moirai_hash(kind, MOIRAI_ID_SALT + name)``). The names behind them are
+  ``identity`` entities (``EH``, uri ``<hash>=<name>``) related to nothing:
+  dropping the ``identity`` records anonymizes the trace, and no id dangles.
+* ``job``: the first of ``FLUX_JOB_ID``, ``SLURM_JOB_ID``, ``PBS_JOBID``,
+  ``LSB_JOBID``, ``COBALT_JOBID``; ``pid``, ``ppid``; ``moirai.enable``,
+  ``moirai.trace_io``.
+* ``env.<NAME>``: the configuration environment - every ``MOIRAI_*``,
+  ``DFTRACER_*`` and ``OMP_*`` variable, the launcher's job, rank and size
+  (Flux, Slurm, PBS, LSF, PMI, Open MPI, PALS), threading (``MKL_NUM_THREADS``,
+  ``OPENBLAS_NUM_THREADS``) and devices (``CUDA_``/``ROCR_``/``HIP_``/
+  ``NVIDIA_VISIBLE_DEVICES``). The user's name in a value (a path under a home
+  or a workspace) is replaced by ``@user:<user_hash>``. A name holding
+  ``TOKEN``, ``SECRET``, ``PASSW``, ``CREDENTIAL``, ``API_KEY`` or ``AUTH`` is
+  never recorded.
+
+.. list-table::
+   :header-rows: 1
+
+   * - Variable
+     - Default
+     - Meaning
+   * - ``MOIRAI_ID_SALT``
+     - empty
+     - Salt of the identity hashes: a site secret makes the hashes of common
+       names hard to guess. Use the same one everywhere the traces are read.
+   * - ``MOIRAI_METADATA_ENV``
+     - empty
+     - ``A,B,C``: more variable names to record as ``env.<NAME>``.
+   * - ``MOIRAI_PROCESS_METADATA``
+     - ``1``
+     - ``0``: record no ``env.*`` (who ran it and the job are still recorded).
+
+An application adds its own with ``moirai::metadata(key, value)``
+(``moirai_metadata``, ``moirai.metadata``); see :doc:`api`.
+
+------------------------------------------
 Fixed by moirai
 ------------------------------------------
 

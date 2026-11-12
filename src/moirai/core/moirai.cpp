@@ -43,6 +43,16 @@ bool is_active() {
   return core != nullptr && core->is_active();
 }
 
+void metadata(const std::string& key, const std::string& value) {
+  MOIRAI_LOG_TRACE();
+  if (key.empty() || !is_active()) return;
+  MoiraiCore::write_metadata(key, value);
+}
+
+std::string identity_hash(const std::string& kind, const std::string& value) {
+  return MoiraiCore::identity_hash(kind, value);
+}
+
 EntityType::EntityType(const std::string& name, Role role,
                        const std::string& description)
     : name_(name) {
@@ -172,6 +182,22 @@ void moirai_finalize(void) {
 }
 
 int moirai_is_active(void) { return moirai::is_active() ? 1 : 0; }
+
+void moirai_metadata(const char* key, const char* value) {
+  MOIRAI_LOG_TRACE();
+  if (key == nullptr) {
+    MOIRAI_LOG_WARN("moirai_metadata ignored: no key");
+    return;
+  }
+  moirai::metadata(key, str(value));
+}
+
+void moirai_identity_hash(const char* kind, const char* value,
+                          char out[MOIRAI_HEX_LEN]) {
+  if (out == nullptr) return;
+  std::snprintf(out, MOIRAI_HEX_LEN, "%s",
+                moirai::identity_hash(str(kind), str(value)).c_str());
+}
 
 void moirai_entity_type(const char* type, MoiraiRole role,
                         const char* description) {

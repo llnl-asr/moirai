@@ -38,7 +38,19 @@ C++
 
 ``moirai::initialize(log_file = "")``, ``moirai::finalize()``, ``moirai::is_active()``
    Start and stop tracing. ``initialize`` returns whether tracing is on
-   (``MOIRAI_ENABLE``); calling it again does nothing.
+   (``MOIRAI_ENABLE``); calling it again does nothing. While tracing,
+   ``initialize`` records the process metadata (see :doc:`configuration`,
+   "Process metadata").
+
+``moirai::metadata(key, value)``
+   Records one key/value pair of this process: a dftracer metadata record
+   (``CM``, ``args.name`` = key, ``args.value`` = value), for the process's own
+   settings (``app.<name>``). Nothing is written when tracing is off.
+
+``moirai::identity_hash(kind, value)``
+   The hash moirai keeps for an identifying string of a kind (``user``,
+   ``group``, ...): ``moirai_hash(kind, MOIRAI_ID_SALT + value)`` as 16 hex
+   digits. The same in every language.
 
 ``moirai::EntityType(name, role, description = "")``
    Describes an entity type, once per process.
@@ -97,6 +109,8 @@ C
      - C++ equivalent
    * - ``moirai_initialize``, ``moirai_finalize``, ``moirai_is_active``
      - ``moirai::initialize``, ``finalize``, ``is_active``
+   * - ``moirai_metadata(key, value)``, ``moirai_identity_hash(kind, value, out)``
+     - ``moirai::metadata``, ``identity_hash`` (Python: ``moirai.metadata``, ``moirai.identity_hash``)
    * - ``moirai_entity_type(type, role, description)``
      - ``moirai::EntityType``
    * - ``moirai_entity(type, key, store, uri)`` → ``MoiraiId``

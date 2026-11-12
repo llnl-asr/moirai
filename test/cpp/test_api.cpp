@@ -38,6 +38,7 @@ static void relations(const moirai::Entity& in0, const moirai::Entity& in1,
 int main(int argc, char* argv[]) {
   const bool direct = argc > 1 && std::strcmp(argv[1], "direct") == 0;
   moirai::initialize();
+  moirai::metadata("app.setting", "42");
 
   moirai::EntityType dataset("dataset", MOIRAI_ROLE_INPUT, "raw input");
   moirai::EntityType model("model", MOIRAI_ROLE_OUTPUT, "trained model");

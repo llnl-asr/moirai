@@ -40,6 +40,15 @@ void moirai_finalize(void);
 /* 1 between moirai_initialize and moirai_finalize when tracing is on. */
 int moirai_is_active(void);
 
+/* Process metadata: one key/value pair of this process (a dftracer CM
+ * record); nothing when tracing is off. */
+void moirai_metadata(const char* key, const char* value);
+/* The hash moirai keeps for an identifying string of a kind ("user",
+ * "group", ...) into out (16 hex digits + NUL): moirai_hash(kind,
+ * MOIRAI_ID_SALT + value). */
+void moirai_identity_hash(const char* kind, const char* value,
+                          char out[MOIRAI_HEX_LEN]);
+
 /* Describe an entity type once per process (an ET record). */
 void moirai_entity_type(const char* type, MoiraiRole role,
                         const char* description);

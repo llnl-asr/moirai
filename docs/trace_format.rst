@@ -25,6 +25,10 @@ entity types:
 
 Field order within ``args`` is not fixed.
 
+Process metadata (``CM`` records, ``args.name``/``args.value``) and the
+``identity`` entities naming the user and group hashes are described in
+:doc:`configuration`, "Process metadata".
+
 ------------------------------------------
 Activities
 ------------------------------------------

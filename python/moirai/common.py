@@ -12,7 +12,7 @@ API = [
     "EntityType", "HAS_ARTIFACT_STORE", "HAS_HDF5", "HAS_MPI", "LAYER",
     "Lifetime", "Relation", "Role", "Store", "activity",
     "agent_configuration", "artifact_uri", "entity",
-    "entity_type", "finalize", "initialize", "is_active", "log_activity",
+    "entity_type", "finalize", "identity_hash", "initialize", "is_active", "log_activity", "metadata",
     "read_artifact", "relate", "relation_name", "store_artifact", "store_artifact_file",
 ]
 
@@ -219,7 +219,9 @@ def make_api(native):
         "entity_type": entity_type,
         "finalize": native.finalize,
         "initialize": initialize,
+        "identity_hash": native.identity_hash,
         "is_active": native.is_active,
+        "metadata": native.metadata,
         "log_activity": log_activity,
         "read_artifact": read_artifact,
         "relate": relate,
