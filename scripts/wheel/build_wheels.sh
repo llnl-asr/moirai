@@ -44,7 +44,7 @@ OUTPUT="$PROJECT_DIR/wheelhouse"
 RUN_TESTS=1
 LIST_ONLY=0
 CIBW_VERSION="${CIBW_VERSION:-3.2.1}"
-DFTRACER_SPEC="${MOIRAI_DFTRACER_SPEC:-dftracer @ git+https://github.com/llnl-asr/dftracer@develop}"
+DFTRACER_SPEC="${MOIRAI_DFTRACER_SPEC:-dftracer>=2.2.0.post57.dev0}"
 VERSION="$(head -n1 "$PROJECT_DIR/VERSION")"
 
 die() {
@@ -155,7 +155,9 @@ export CIBW_BUILD_VERBOSITY=1
 # The test command does get {project}.
 export CIBW_REPAIR_WHEEL_COMMAND="bash /project/scripts/wheel/repair_wheel.sh {wheel} {dest_dir}"
 if [ "$RUN_TESTS" = 1 ]; then
-  export CIBW_BEFORE_TEST="$INSTALL_DFTRACER"
+  # cmake: the test composes dftracer (moirai-compose), which links
+  # libdftracer_core again with CMake and the container's compiler.
+  export CIBW_BEFORE_TEST="$INSTALL_DFTRACER && pip install 'cmake>=3.24'"
   export CIBW_TEST_COMMAND="python {project}/scripts/wheel/test_wheel.py {project}"
 fi
 

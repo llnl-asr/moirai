@@ -1,10 +1,11 @@
 [build-system]
 # The dftracer wheel is a build requirement too: moirai's wheel is built
 # against it (MOIRAI_DFTRACER=PACKAGE) and runs on it. It needs dftracer's
-# event-type API, which no dftracer release has yet: for now the pin is the
-# build of dftracer's develop branch (2.2.0.post17.dev0,
-# what CI installs from git). Replace it with the first release that has it.
-requires = ["scikit-build-core>=0.10", "pybind11>=2.12", "dftracer>=2.2.0.post17.dev0"]
+# event-type API and its composable modules, which no final release has yet:
+# the pin is the pre-release dftracer's develop publishes to PyPI with
+# dftracer-modules (2.2.0.post57.dev0). Naming a pre-release lets pip pick
+# pre-releases of dftracer without --pre. Replace it with the first release.
+requires = ["scikit-build-core>=0.10", "pybind11>=2.12", "dftracer>=2.2.0.post57.dev0"]
 build-backend = "scikit_build_core.build"
 
 [project]
@@ -26,9 +27,15 @@ classifiers = [
   "Programming Language :: C++",
   "Programming Language :: Python :: 3",
 ]
-# moirai runs dftracer underneath it: one with the event-type API (see the
-# build requirements above).
-dependencies = ["dftracer>=2.2.0.post17.dev0"]
+# moirai runs dftracer underneath it (see the build requirements above),
+# with the prebuilt modules dftracer-compose links the ones moirai needs from
+# (moirai-compose). dftracer's "modules" extra names dftracer-modules without
+# a version, so it is pinned here too: pip takes a pre-release only for a
+# requirement that names one.
+dependencies = [
+  "dftracer[modules]>=2.2.0.post57.dev0",
+  "dftracer-modules>=2.2.0.post57.dev0",
+]
 
 [project.urls]
 Homepage = "https://github.com/llnl-asr/moirai"
@@ -36,6 +43,7 @@ Documentation = "https://moirai.readthedocs.io"
 
 [project.scripts]
 moirai-service = "moirai.service:main"
+moirai-compose = "moirai.compose:main"
 
 [tool.scikit-build]
 minimum-version = "0.10"

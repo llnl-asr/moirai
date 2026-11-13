@@ -102,6 +102,19 @@ def main():
         assert r.returncode == 2 and "Usage" in r.stderr, (name, r)
         print(name, "starts")
 
+    step("compose")
+    # dftracer's modules come from dftracer-modules, linked by dftracer-compose;
+    # this container has no MPI or HDF5, so none is linked, and HAS_* say so.
+    run([sys.executable, "-m", "moirai.compose", "--no-build"], env=clean_env())
+    r = run([sys.executable, "-c",
+             "import moirai; print(moirai.HAS_MPI, moirai.HAS_HDF5)"], env=clean_env())
+    print("HAS_MPI HAS_HDF5:", r.stdout.strip())
+    assert r.stdout.split() == ["False", "False"], r.stdout
+    composition = glob.glob(os.path.join(os.path.dirname(pkg), "dftracer", "lib*",
+                                         "dftracer", "composition.txt"))
+    assert composition, "dftracer-compose wrote no composition.txt"
+    print(open(composition[0]).read().strip())
+
     for debug in ("0", "1"):
         step(f"end to end (debug={debug})")
         work = tempfile.mkdtemp(prefix="moirai-wheel-")

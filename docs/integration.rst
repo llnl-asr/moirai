@@ -31,9 +31,11 @@ Step 1: install
 
 .. code-block:: bash
 
-   pip install moirai          # brings the dftracer wheel it runs on
+   pip install moirai          # brings the dftracer wheels it runs on
+   moirai-compose              # with the application's MPI/HDF5 loaded
 
-The wheel has the Python API, the hooks (``python -m moirai.agent``), the command
+``moirai-compose`` links dftracer's MPI and HDF5 modules for this machine
+(see :doc:`build`). The wheel has the Python API, the hooks (``python -m moirai.agent``), the command
 wrapper (``moirai.agent.run``), ``libmoirai`` and the ``moirai-service`` command.
 From source, see :doc:`build`.
 

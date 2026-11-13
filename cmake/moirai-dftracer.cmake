@@ -25,6 +25,7 @@
 #            require that wheel; its features are the wheel's.
 
 set(MOIRAI_DFTRACER "FIND" CACHE STRING "Where dftracer comes from: FIND or BUILD")
+set(MOIRAI_DFTRACER_COMPOSED 0)
 set_property(CACHE MOIRAI_DFTRACER PROPERTY STRINGS FIND BUILD PACKAGE)
 option(MOIRAI_ENABLE_HDF5 "Trace HDF5 through dftracer" OFF)
 option(MOIRAI_ENABLE_MPI "Trace MPI through dftracer" OFF)
@@ -176,14 +177,13 @@ if(MOIRAI_DFTRACER STREQUAL "PACKAGE")
         add_executable(${_exe} IMPORTED)
         set_target_properties(${_exe} PROPERTIES IMPORTED_LOCATION ${_path_${_exe}})
     endforeach()
-    # The wheel's features: no HDF5 or MPI (dftracer's wheels build without).
+    # The wheel's HDF5 and MPI are not fixed here: dftracer-compose links
+    # them into the installed wheel (moirai-compose), and moirai reads its
+    # composition at run time (MOIRAI_DFTRACER_COMPOSED).
     foreach(_f HDF5 MPI)
         set(MOIRAI_HAS_${_f} 0)
-        if(_f IN_LIST MOIRAI_FEATURES)
-            message(FATAL_ERROR "[moirai] MOIRAI_ENABLE_${_f} needs a dftracer "
-                                "built with it; the dftracer package has none")
-        endif()
     endforeach()
+    set(MOIRAI_DFTRACER_COMPOSED 1)
     set(DFTRACER_VERSION "(package)")
     set(dftracer_DIR ${_pkg})
 elseif(MOIRAI_DFTRACER STREQUAL "FIND")
@@ -231,7 +231,10 @@ foreach(_f HDF5 MPI)
 endforeach()
 endif()
 foreach(_f IN LISTS MOIRAI_FEATURES)
-    if(NOT _f MATCHES "^(HDF5|MPI)$")
+    if(MOIRAI_DFTRACER_COMPOSED)
+        message(STATUS "[moirai] ${_f}: composed into the dftracer wheel after "
+                       "installing (moirai-compose), not at build time")
+    elseif(NOT _f MATCHES "^(HDF5|MPI)$")
         message(STATUS "[moirai] assuming dftracer at ${dftracer_DIR} was built "
                        "with ${_f} (its package does not record it)")
     endif()

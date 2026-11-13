@@ -6,6 +6,7 @@
 uses one of them: each native module brings its own dftracer.
 """
 import functools
+import os
 
 API = [
     "Activity", "Artifact", "CATEGORY", "DEFAULT_TRACE_IO", "Entity",
@@ -17,8 +18,32 @@ API = [
 ]
 
 
+def dftracer_composed_modules():
+    """The modules linked into the dftracer wheel's libdftracer_core, from
+    the composition.txt dftracer-compose writes (``<module> <variant>
+    linked``); None when there is none to read."""
+    try:
+        import dftracer
+    except ImportError:
+        return None
+    package = os.path.dirname(dftracer.__file__)
+    for libdir in ("lib64", "lib"):
+        path = os.path.join(package, libdir, "dftracer", "composition.txt")
+        if os.path.exists(path):
+            with open(path) as composition:
+                return {fields[0] for fields in (line.split() for line in composition)
+                        if len(fields) == 3 and fields[2] == "linked"}
+    return None
+
+
 def make_api(native):
     """The API (a dict of the names in ``API``) on ``native``."""
+    # Against the dftracer wheel, HDF5 and MPI are what dftracer-compose
+    # linked into it after installing (moirai-compose), not a build setting.
+    has_hdf5, has_mpi = native.HAS_HDF5, native.HAS_MPI
+    if getattr(native, "DFTRACER_COMPOSED", False):
+        composed = dftracer_composed_modules() or set()
+        has_hdf5, has_mpi = "hdf5" in composed, "mpi" in composed
     Store, Relation = native.Store, native.Relation
 
     def initialize(log_file=""):
@@ -205,8 +230,8 @@ def make_api(native):
         "Entity": native.Entity,
         "EntityType": native.EntityType,
         "HAS_ARTIFACT_STORE": native.HAS_ARTIFACT_STORE,
-        "HAS_HDF5": native.HAS_HDF5,
-        "HAS_MPI": native.HAS_MPI,
+        "HAS_HDF5": has_hdf5,
+        "HAS_MPI": has_mpi,
         "LAYER": native.LAYER,
         "Lifetime": native.Lifetime,
         "Relation": Relation,

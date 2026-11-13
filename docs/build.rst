@@ -12,13 +12,21 @@ From PyPI
 
 .. code-block:: bash
 
-   pip install moirai          # brings the dftracer wheel it runs on
+   module load <the MPI and HDF5 the application uses>
+   pip install moirai          # brings the dftracer wheels it runs on
+   moirai-compose              # links dftracer's MPI and HDF5 modules
 
 The wheel has the Python API (``moirai``, ``moirai.dbg``), ``libmoirai`` with
 its headers (``site-packages/moirai/{lib64,include}``) and the
-``moirai-service`` command. It runs on the ``dftracer`` wheel, so its
-dftracer features are that wheel's: I/O tracing, no HDF5 or MPI. For those,
-build from source.
+``moirai-service`` and ``moirai-compose`` commands. It runs on the
+``dftracer`` pre-release with ``dftracer-modules``, its optional modules
+prebuilt. ``moirai-compose`` runs ``dftracer-compose`` for what provenance
+needs: the MPI and HDF5 this machine has, linked from the prebuilt variants
+(or built from source where none fits), and not PAPI, hwloc, HIP or CUDA,
+which are about performance (``--with-performance`` keeps them). Run it once
+after installing, on the kind of node the application runs on, with its
+modules loaded; ``moirai-compose --status`` shows what is linked, and
+``moirai.HAS_MPI`` / ``moirai.HAS_HDF5`` report it at run time.
 
 ------------------------------------------
 Against an installed dftracer

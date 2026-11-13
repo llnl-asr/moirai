@@ -28,6 +28,17 @@ log() { echo "[dftracer-wheel] $*"; }
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
 
+# A version requirement (dftracer>=2.2.0.post57.dev0) is a wheel dftracer
+# publishes, already manylinux and relocatable: download it as users get it.
+# Only a git URL or a path is built here.
+case "$spec" in
+  *git+*|*://*|/*|./*|../*) ;;
+  *)
+    mkdir -p "$out"
+    "$python" -m pip download --pre --no-deps --only-binary :all: -d "$out" "$spec"
+    log "downloaded $(ls "$out"/dftracer-*.whl)"
+    exit 0 ;;
+esac
 log "building $spec"
 DFTRACER_WHEEL=1 "$python" -m pip wheel --no-deps -w "$work/built" "$spec"
 

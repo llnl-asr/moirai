@@ -52,6 +52,7 @@ PYBIND11_MODULE(MOIRAI_PY_MODULE, m) {
   m.attr("DEFAULT_TRACE_IO") = MOIRAI_DEFAULT_TRACE_IO != 0;
   m.attr("HAS_HDF5") = MOIRAI_HAS_HDF5 != 0;
   m.attr("HAS_MPI") = MOIRAI_HAS_MPI != 0;
+  m.attr("DFTRACER_COMPOSED") = MOIRAI_DFTRACER_COMPOSED != 0;
   m.attr("HAS_ARTIFACT_STORE") = MOIRAI_HAS_ARTIFACT_STORE != 0;
 
   py::enum_<MoiraiStore>(m, "Store", py::module_local())

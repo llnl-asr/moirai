@@ -9,6 +9,10 @@
 /* dftracer was built with HDF5 / MPI tracing. */
 #define MOIRAI_HAS_HDF5 @MOIRAI_HAS_HDF5@
 #define MOIRAI_HAS_MPI @MOIRAI_HAS_MPI@
+/* dftracer is the wheel, whose modules (HDF5, MPI, ...) are composed into it
+ * after installing (moirai-compose): HAS_HDF5/HAS_MPI are then read from its
+ * composition at run time, not fixed here. */
+#define MOIRAI_DFTRACER_COMPOSED @MOIRAI_DFTRACER_COMPOSED@
 /* Artifacts are stored (RocksDB, through dftracer-utils). */
 #define MOIRAI_HAS_ARTIFACT_STORE @MOIRAI_HAS_ARTIFACT_STORE@
 /* Further dftracer features moirai was built with (MOIRAI_DFTRACER_FEATURES),
